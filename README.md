@@ -1,0 +1,83 @@
+# OSK Frontend
+
+Next.js (App Router) + TypeScript + Redux Toolkit + RTK Query + SCSS token
+theming. Premium real estate UI with four first-class themes.
+
+## Quick start
+
+```bash
+cp .env.example .env.local      # works as-is — map tiles need no API key
+npm install
+npm run dev                     # runs preflight, then starts on :3000
+```
+
+Node 22+ required. No Docker.
+
+## Scripts
+
+| Script               | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| `npm run dev`        | Preflight check, then Turbopack dev server         |
+| `npm run build`      | Production build (+ sitemap via `postbuild`)       |
+| `npm run preflight`  | Verify Node, env file and required env vars        |
+| `npm run lint`       | ESLint + Stylelint + hardcoded-color guard         |
+| `npm run typecheck`  | `tsc --noEmit`                                     |
+| `npm test`           | Vitest (unit + component)                          |
+| `npm run test:e2e`   | Playwright end-to-end                              |
+| `npm run format`     | Prettier write                                     |
+
+## Architecture
+
+Feature-first + layered. See `../docs/ARCHITECTURE.md` for the full blueprint.
+
+```
+src/
+├── app/          App Router — routing/presentation only
+├── components/   Reusable presentation (ui / layout / property / theme / home)
+├── features/     Self-contained domain modules (auth, properties, contact, ui…)
+├── store/        Redux store, typed hooks, RTK Query base layer
+├── contracts/    Shared API DTOs / enums / Zod schemas (→ future @osk/contracts)
+├── lib/          Framework-agnostic helpers
+└── styles/       SCSS token + 4-theme design system
+```
+
+### Conventions
+
+- Folders `kebab-case`; components `PascalCase.tsx`; SCSS partials `_name.scss`.
+- Every feature exposes a barrel `index.ts` — its **only** public surface.
+  Importing another feature's internals is an ESLint error.
+- Server Components by default; add `'use client'` only for interactive islands.
+- Server state → RTK Query. UI/session state → Redux slices. Never mix them.
+
+### State
+
+`store/api/baseApi.ts` is the single RTK Query instance; each feature calls
+`baseApi.injectEndpoints(...)`. `baseQueryWithReauth` handles refresh-token
+rotation transparently. Add an endpoint or slice without touching the store.
+
+### Theming
+
+Four themes — `theme-luxe-light`, `theme-luxe-dark`, `theme-emerald`,
+`theme-sandstone` — defined in `src/styles/tokens/`. Components consume only
+`var(--token)` CSS custom properties; **no hardcoded colors** (enforced by
+ESLint, Stylelint and `scripts/check-hardcoded-colors.mjs`). The theme is a
+class on `<html>`, applied pre-paint by `ThemeScript` (no flash) and switched
+via the `ThemeSwitcher`.
+
+## Environment
+
+Copy `.env.example` → `.env.local`. Required: `NEXT_PUBLIC_API_BASE_URL`,
+`NEXT_PUBLIC_SITE_URL`. Optional: `NEXT_PUBLIC_MAP_STYLE_URL` (defaults to the
+free, key-less OpenFreeMap style), `NEXT_PUBLIC_SOCKET_URL` (realtime chat).
+
+Maps use **MapLibre GL JS** with **OpenFreeMap** tiles — no API key, no credit
+card. Point `NEXT_PUBLIC_MAP_STYLE_URL` at MapTiler, Stadia or a self-hosted
+style to switch providers without touching code.
+
+## Troubleshooting
+
+- **Port 3000 in use** — `lsof -ti:3000 | xargs kill` or `next dev -p 3001`.
+- **Preflight fails** — it tells you which env var or service is missing.
+- **Stale build** — `rm -rf .next` then `npm run dev`.
+- **Listings empty** — expected until `osk-backend` is running; the UI shows
+  graceful empty/error states.
