@@ -102,7 +102,7 @@
 }
 
 /* ─── MapLibre chrome theming (scoped globals) ───────────────────────── */
-:global(.maplibregl-ctrl-group) {
+.shell :global(.maplibregl-ctrl-group) {
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: radius('md');
@@ -110,13 +110,13 @@
   overflow: hidden;
 }
 
-:global(.maplibregl-ctrl-group) button {
+.shell :global(.maplibregl-ctrl-group) button {
   background-color: var(--bg-card);
   color: var(--text-primary);
   border-block-end: 1px solid var(--divider);
 }
 
-:global(.maplibregl-ctrl-group) button:last-child {
+.shell :global(.maplibregl-ctrl-group) button:last-child {
   border-block-end: 0;
 }
 
