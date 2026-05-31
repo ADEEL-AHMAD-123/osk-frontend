@@ -120,20 +120,20 @@
   border-block-end: 0;
 }
 
-:global(.maplibregl-ctrl-group) button:hover {
+.shell :global(.maplibregl-ctrl-group) button:hover {
   background-color: var(--color-primary-soft);
 }
 
-:global(.maplibregl-ctrl-attrib) {
+.shell :global(.maplibregl-ctrl-attrib) {
   background: var(--bg-card);
   color: var(--text-muted);
   font-size: 0.6875rem;
 }
 
-:global(.maplibregl-ctrl-attrib) a {
+.shell :global(.maplibregl-ctrl-attrib) a {
   color: var(--text-secondary);
 }
 
-:global(.maplibregl-ctrl-attrib-button) {
+.shell :global(.maplibregl-ctrl-attrib-button) {
   background-color: var(--bg-card);
 }
