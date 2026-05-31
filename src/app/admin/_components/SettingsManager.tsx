@@ -94,7 +94,7 @@ export function SettingsManager() {
       }).unwrap();
       dispatch(toastPushed('success', 'Settings saved — site updated.'));
     } catch {
-      /* global toast handles the error envelope */
+      /* surfaced by the global toast handles the error envelope */
     }
   };
 
@@ -127,8 +127,8 @@ export function SettingsManager() {
         <span className={styles.eyebrow}>Admin · Settings</span>
         <h1 className={styles.title}>Site settings</h1>
         <p className={styles.sub}>
-          Change the active theme, company logo, and contact details for the
-          whole site. Updates take effect immediately.
+          Change the active theme, company logo, and contact details for the whole site.
+          Updates take effect immediately.
         </p>
       </header>
 
@@ -137,9 +137,8 @@ export function SettingsManager() {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Theme</h2>
           <p className={styles.sectionHint}>
-            Applies to every visitor on every page. Use the previews to
-            preview tokens — the live site already reflects your current
-            choice as you scroll.
+            Applies to every visitor on every page. Use the previews to preview tokens —
+            the live site already reflects your current choice as you scroll.
           </p>
           <div className={styles.themeGrid}>
             {THEMES.map((theme) => {
@@ -163,9 +162,7 @@ export function SettingsManager() {
                   </div>
                   <span className={styles.themeName}>{meta.label}</span>
                   <span className={styles.themeTagline}>{meta.tagline}</span>
-                  {active ? (
-                    <span className={styles.activeBadge}>Active</span>
-                  ) : null}
+                  {active ? <span className={styles.activeBadge}>Active</span> : null}
                 </button>
               );
             })}
@@ -224,8 +221,8 @@ export function SettingsManager() {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Contact</h2>
           <p className={styles.sectionHint}>
-            Surfaces in the footer, contact page, and the footer of every
-            transactional email we send.
+            Surfaces in the footer, contact page, and the footer of every transactional
+            email we send.
           </p>
           <div className={styles.grid2}>
             <TextField

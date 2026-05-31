@@ -46,7 +46,7 @@ export function FeaturedManager() {
         ),
       );
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     } finally {
       setBusyId(null);
     }
@@ -58,10 +58,9 @@ export function FeaturedManager() {
         <span className={styles.eyebrow}>Admin · Featured listings</span>
         <h1 className={styles.title}>Featured listings</h1>
         <p className={styles.sub}>
-          Featured listings appear in the &ldquo;Curated&rdquo; band on the
-          home page and surface first in search. There&rsquo;s no hard
-          cap — keep the set small enough that &ldquo;featured&rdquo; still
-          means something.
+          Featured listings appear in the &ldquo;Curated&rdquo; band on the home page and
+          surface first in search. There&rsquo;s no hard cap — keep the set small enough
+          that &ldquo;featured&rdquo; still means something.
         </p>
       </header>
 
@@ -105,10 +104,7 @@ export function FeaturedManager() {
       ) : (
         <ul className={styles.list}>
           {items.map((p) => (
-            <li
-              key={p.id}
-              className={cn(styles.row, p.isFeatured && styles.rowFeatured)}
-            >
+            <li key={p.id} className={cn(styles.row, p.isFeatured && styles.rowFeatured)}>
               <Link
                 href={`/property/${p.slug}`}
                 target="_blank"
@@ -125,8 +121,7 @@ export function FeaturedManager() {
               </Link>
               <div className={styles.copy}>
                 <p className={styles.meta}>
-                  {p.locality} · {p.city} ·{' '}
-                  <span className={styles.type}>{p.type}</span>
+                  {p.locality} · {p.city} · <span className={styles.type}>{p.type}</span>
                 </p>
                 <Link
                   href={`/property/${p.slug}`}
@@ -158,11 +153,7 @@ export function FeaturedManager() {
                     <span className={styles.toggleThumb} />
                   </span>
                   <span className={styles.toggleLabel}>
-                    {busyId === p.id
-                      ? 'Saving…'
-                      : p.isFeatured
-                        ? 'On'
-                        : 'Off'}
+                    {busyId === p.id ? 'Saving…' : p.isFeatured ? 'On' : 'Off'}
                   </span>
                 </label>
               </div>

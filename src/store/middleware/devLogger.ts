@@ -10,7 +10,6 @@ export const devLogger: Middleware = () => (next) => (action) => {
       typeof action === 'object' && action !== null && 'type' in action
         ? String((action as { type: unknown }).type)
         : 'unknown';
-    // eslint-disable-next-line no-console
     console.debug('[redux]', type);
   }
   return next(action);

@@ -19,7 +19,6 @@ export default function GlobalError({
   useEffect(() => {
     // Production: route to Sentry / your tracer. Dev: log to console.
     if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
       console.error('Global error:', error);
     }
   }, [error]);

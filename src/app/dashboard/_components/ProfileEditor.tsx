@@ -60,7 +60,7 @@ export function ProfileEditor() {
       dispatch(toastPushed('success', 'Profile saved.'));
       window.setTimeout(() => setSuccess(false), 2500);
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     }
   };
 
@@ -146,7 +146,7 @@ export function ProfileEditor() {
             />
 
             {/* Keep avatarUrl in the form so server-side validation messages
-              * surface if the URL is ever rejected. */}
+             * surface if the URL is ever rejected. */}
             <input type="hidden" value={avatarUrl} {...register('avatarUrl')} />
 
             <div className={styles.actions}>

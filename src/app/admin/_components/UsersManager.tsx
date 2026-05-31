@@ -68,7 +68,7 @@ export function UsersManager() {
       await updateUser({ id: user.id, body }).unwrap();
       dispatch(toastPushed('success', `Updated ${user.name}.`));
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     } finally {
       setBusyId(null);
     }
@@ -90,7 +90,7 @@ export function UsersManager() {
       /* Drop them onto the dashboard so they see the target's POV. */
       router.push('/dashboard');
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     } finally {
       setBusyId(null);
     }
@@ -102,8 +102,8 @@ export function UsersManager() {
         <span className={styles.eyebrow}>Admin · Users</span>
         <h1 className={styles.title}>Users</h1>
         <p className={styles.sub}>
-          Change roles or block accounts. Blocked users keep their history,
-          but can&rsquo;t sign in or contact owners.
+          Change roles or block accounts. Blocked users keep their history, but
+          can&rsquo;t sign in or contact owners.
         </p>
       </header>
 
@@ -141,10 +141,7 @@ export function UsersManager() {
             const isSelf = me?.id === u.id;
             const blocked = u.status === 'blocked';
             return (
-              <li
-                key={u.id}
-                className={cn(styles.row, blocked && styles.rowBlocked)}
-              >
+              <li key={u.id} className={cn(styles.row, blocked && styles.rowBlocked)}>
                 <span className={styles.avatar} aria-hidden="true">
                   {initials(u.name)}
                 </span>
@@ -152,9 +149,7 @@ export function UsersManager() {
                 <div className={styles.copy}>
                   <p className={styles.name}>
                     {u.name}
-                    {isSelf ? (
-                      <span className={styles.selfTag}>· you</span>
-                    ) : null}
+                    {isSelf ? <span className={styles.selfTag}>· you</span> : null}
                   </p>
                   <p className={styles.meta}>
                     {u.email} · joined {formatDate(u.createdAt)}
@@ -183,12 +178,7 @@ export function UsersManager() {
                   <button
                     type="button"
                     className={styles.impersonate}
-                    disabled={
-                      impersonating ||
-                      isSelf ||
-                      blocked ||
-                      busyId === u.id
-                    }
+                    disabled={impersonating || isSelf || blocked || busyId === u.id}
                     onClick={() => onImpersonate(u)}
                     title={
                       blocked
@@ -196,9 +186,7 @@ export function UsersManager() {
                         : `Sign in as ${u.name}`
                     }
                   >
-                    {busyId === u.id && impersonating
-                      ? 'Switching…'
-                      : 'Impersonate'}
+                    {busyId === u.id && impersonating ? 'Switching…' : 'Impersonate'}
                   </button>
                   <button
                     type="button"
@@ -207,9 +195,7 @@ export function UsersManager() {
                       blocked ? styles.unblock : styles.block,
                     )}
                     disabled={updating || isSelf || busyId === u.id}
-                    onClick={() =>
-                      patch(u, { status: blocked ? 'active' : 'blocked' })
-                    }
+                    onClick={() => patch(u, { status: blocked ? 'active' : 'blocked' })}
                   >
                     {blocked ? 'Unblock' : 'Block'}
                   </button>

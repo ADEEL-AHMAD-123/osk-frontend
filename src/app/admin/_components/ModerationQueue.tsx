@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PropertySummary } from '@contracts';
@@ -30,11 +30,11 @@ export function ModerationQueue() {
   /* Multi-select state — set of property ids. */
   const [selected, setSelected] = useState<Set<string>>(new Set());
   /* Bulk-mode progress for the toolbar buttons. */
-  const [bulkRunning, setBulkRunning] = useState<'approve' | 'reject' | null>(
-    null,
-  );
+  const [bulkRunning, setBulkRunning] = useState<'approve' | 'reject' | null>(null);
 
-  const items = data?.items ?? [];
+  /* Memoize so the effect below doesn't see a fresh array on every render
+   * (which would re-run on every re-render and churn the selection set). */
+  const items = useMemo(() => data?.items ?? [], [data]);
   const meta = data?.meta;
   const canPrev = page > 1;
   const canNext = meta ? page < meta.pages : false;
@@ -66,10 +66,7 @@ export function ModerationQueue() {
       prev.size === items.length ? new Set() : new Set(items.map((p) => p.id)),
     );
 
-  const onAction = async (
-    listing: PropertySummary,
-    decision: 'approve' | 'reject',
-  ) => {
+  const onAction = async (listing: PropertySummary, decision: 'approve' | 'reject') => {
     setBusyId(listing.id);
     try {
       if (decision === 'approve') {
@@ -80,7 +77,7 @@ export function ModerationQueue() {
         dispatch(toastPushed('success', `Rejected “${listing.title}”.`));
       }
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     } finally {
       setBusyId(null);
     }
@@ -137,8 +134,8 @@ export function ModerationQueue() {
         <span className={styles.eyebrow}>Admin · Moderation</span>
         <h1 className={styles.title}>Listings pending review</h1>
         <p className={styles.sub}>
-          Approve to publish, or reject to send the listing back to the
-          seller. Select multiple rows to clear them in one pass.
+          Approve to publish, or reject to send the listing back to the seller. Select
+          multiple rows to clear them in one pass.
         </p>
       </header>
 
@@ -159,9 +156,7 @@ export function ModerationQueue() {
               onChange={toggleAll}
             />
             <span>
-              {someChecked
-                ? `${selected.size} selected`
-                : `Select all on this page`}
+              {someChecked ? `${selected.size} selected` : `Select all on this page`}
             </span>
           </label>
           <div className={styles.bulkActions}>
@@ -197,8 +192,7 @@ export function ModerationQueue() {
         <div className={styles.empty}>
           <p className={styles.emptyTitle}>Inbox zero.</p>
           <p className={styles.emptySub}>
-            Nothing waiting on you right now. New submissions land here in
-            real time.
+            Nothing waiting on you right now. New submissions land here in real time.
           </p>
         </div>
       ) : (
@@ -206,10 +200,7 @@ export function ModerationQueue() {
           {items.map((p) => {
             const checked = selected.has(p.id);
             return (
-              <li
-                key={p.id}
-                className={cn(styles.row, checked && styles.rowChecked)}
-              >
+              <li key={p.id} className={cn(styles.row, checked && styles.rowChecked)}>
                 <label className={styles.rowCheck}>
                   <input
                     type="checkbox"
@@ -259,9 +250,7 @@ export function ModerationQueue() {
                     onClick={() => onAction(p, 'approve')}
                     disabled={mutating || busyId === p.id || bulkRunning !== null}
                   >
-                    {busyId === p.id && approveState.isLoading
-                      ? 'Approving…'
-                      : 'Approve'}
+                    {busyId === p.id && approveState.isLoading ? 'Approving…' : 'Approve'}
                   </button>
                   <button
                     type="button"
@@ -269,9 +258,7 @@ export function ModerationQueue() {
                     onClick={() => onAction(p, 'reject')}
                     disabled={mutating || busyId === p.id || bulkRunning !== null}
                   >
-                    {busyId === p.id && rejectState.isLoading
-                      ? 'Rejecting…'
-                      : 'Reject'}
+                    {busyId === p.id && rejectState.isLoading ? 'Rejecting…' : 'Reject'}
                   </button>
                 </div>
               </li>

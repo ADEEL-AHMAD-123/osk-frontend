@@ -24,10 +24,7 @@ const STATUS_LABEL: Record<PropertyStatus, string> = {
   archived: 'Archived',
 };
 
-const STATUS_TONE: Record<
-  PropertyStatus,
-  'new' | 'resale' | 'featured' | 'sold'
-> = {
+const STATUS_TONE: Record<PropertyStatus, 'new' | 'resale' | 'featured' | 'sold'> = {
   draft: 'resale',
   'pending-review': 'featured',
   approved: 'new',
@@ -53,7 +50,7 @@ export function MyListings() {
       await submitForReview(id).unwrap();
       dispatch(toastPushed('success', 'Listing submitted for review.'));
     } catch {
-      /* global error toast handles this */
+      /* surfaced by the global error toast handles this */
     }
   };
 
@@ -107,10 +104,7 @@ export function MyListings() {
                 <li key={p.id} className={styles.row}>
                   <div className={styles.cellListing}>
                     <p className={styles.listingTitle}>
-                      <Link
-                        href={`/property/${p.slug}`}
-                        className={styles.listingLink}
-                      >
+                      <Link href={`/property/${p.slug}`} className={styles.listingLink}>
                         {p.title}
                       </Link>
                     </p>
@@ -130,9 +124,7 @@ export function MyListings() {
                   </div>
                   <div className={styles.cell}>
                     <span className={styles.cellLabel}>Status</span>
-                    <Badge tone={STATUS_TONE[status]}>
-                      {STATUS_LABEL[status]}
-                    </Badge>
+                    <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>
                   </div>
                   <div className={styles.cellAction}>
                     <Link
@@ -151,10 +143,7 @@ export function MyListings() {
                         Submit
                       </Button>
                     ) : (
-                      <Link
-                        href={`/property/${p.slug}`}
-                        className={styles.viewLink}
-                      >
+                      <Link href={`/property/${p.slug}`} className={styles.viewLink}>
                         View →
                       </Link>
                     )}

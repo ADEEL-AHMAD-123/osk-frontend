@@ -73,7 +73,7 @@ export function MyInquiries({ adminMode = false }: MyInquiriesProps = {}) {
       await updateStatus({ id, body: { status: next } }).unwrap();
       dispatch(toastPushed('success', 'Inquiry status updated.'));
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     }
   };
 
@@ -81,9 +81,7 @@ export function MyInquiries({ adminMode = false }: MyInquiriesProps = {}) {
     <section className={styles.shell}>
       <header className={styles.head}>
         <div className={styles.headCopy}>
-          <span className={styles.eyebrow}>
-            {adminMode ? 'Admin · Leads' : 'Leads'}
-          </span>
+          <span className={styles.eyebrow}>{adminMode ? 'Admin · Leads' : 'Leads'}</span>
           <h1 className={styles.title}>
             {adminMode ? 'Platform inquiries' : 'Inquiries'}
           </h1>
@@ -132,10 +130,7 @@ export function MyInquiries({ adminMode = false }: MyInquiriesProps = {}) {
           {items.map((inq) => {
             const open = expanded === inq.id;
             return (
-              <li
-                key={inq.id}
-                className={cn(styles.row, open && styles.rowOpen)}
-              >
+              <li key={inq.id} className={cn(styles.row, open && styles.rowOpen)}>
                 <button
                   type="button"
                   className={styles.rowHead}
@@ -205,10 +200,7 @@ export function MyInquiries({ adminMode = false }: MyInquiriesProps = {}) {
                           value={inq.status}
                           disabled={updateState.isLoading}
                           onChange={(e) =>
-                            onChangeStatus(
-                              inq.id,
-                              e.target.value as InquiryStatus,
-                            )
+                            onChangeStatus(inq.id, e.target.value as InquiryStatus)
                           }
                         >
                           {STATUS_OPTIONS.map((s) => (

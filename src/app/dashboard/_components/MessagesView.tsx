@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -58,9 +53,7 @@ export function MessagesView() {
     }
   }, [activeId, urlThreadId, threads]);
 
-  const activeThread = activeId
-    ? threads?.find((t) => t.id === activeId)
-    : undefined;
+  const activeThread = activeId ? threads?.find((t) => t.id === activeId) : undefined;
 
   return (
     <section className={styles.shell}>
@@ -94,10 +87,7 @@ export function MessagesView() {
                   <li key={t.id}>
                     <button
                       type="button"
-                      className={cn(
-                        styles.threadItem,
-                        active && styles.threadItemActive,
-                      )}
+                      className={cn(styles.threadItem, active && styles.threadItemActive)}
                       onClick={() => {
                         setActiveId(t.id);
                         router.replace(`/dashboard/messages?thread=${t.id}`);
@@ -108,7 +98,10 @@ export function MessagesView() {
                           {t.counterpart?.name ?? 'Conversation'}
                         </span>
                         {t.unread > 0 ? (
-                          <span className={styles.unread} aria-label={`${t.unread} unread`}>
+                          <span
+                            className={styles.unread}
+                            aria-label={`${t.unread} unread`}
+                          >
                             {t.unread}
                           </span>
                         ) : null}
@@ -152,13 +145,7 @@ export function MessagesView() {
 }
 
 /* ─── conversation pane ───────────────────────────────────────────────── */
-function ConversationPane({
-  thread,
-  viewerId,
-}: {
-  thread: Thread;
-  viewerId: string;
-}) {
+function ConversationPane({ thread, viewerId }: { thread: Thread; viewerId: string }) {
   const threadId = thread.id;
   const { data: messages, isLoading } = useListMessagesQuery(threadId, {
     pollingInterval: POLL_MESSAGES_MS,
@@ -186,15 +173,11 @@ function ConversationPane({
     const onIncoming = (incoming: Message) => {
       if (incoming.threadId !== threadId) return;
       dispatch(
-        messagesApi.util.updateQueryData(
-          'listMessages',
-          threadId,
-          (draftList) => {
-            if (!draftList.some((m) => m.id === incoming.id)) {
-              draftList.push(incoming);
-            }
-          },
-        ),
+        messagesApi.util.updateQueryData('listMessages', threadId, (draftList) => {
+          if (!draftList.some((m) => m.id === incoming.id)) {
+            draftList.push(incoming);
+          }
+        }),
       );
     };
     socket.on('thread:message', onIncoming);
@@ -228,7 +211,7 @@ function ConversationPane({
       setAttachments([]);
       setShowUploader(false);
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     }
   };
 
@@ -266,9 +249,7 @@ function ConversationPane({
               </span>
             )}
           </p>
-          <p className={styles.convMeta}>
-            {thread.counterpart?.email ?? '—'}
-          </p>
+          <p className={styles.convMeta}>{thread.counterpart?.email ?? '—'}</p>
         </div>
         {thread.property ? (
           <Link
@@ -288,9 +269,7 @@ function ConversationPane({
             </span>
             <span className={styles.convPropertyCopy}>
               <span className={styles.convPropertyLabel}>About</span>
-              <span className={styles.convPropertyTitle}>
-                {thread.property.title}
-              </span>
+              <span className={styles.convPropertyTitle}>{thread.property.title}</span>
             </span>
           </Link>
         ) : null}
@@ -308,10 +287,7 @@ function ConversationPane({
               return (
                 <li
                   key={m.id}
-                  className={cn(
-                    styles.message,
-                    mine ? styles.mine : styles.theirs,
-                  )}
+                  className={cn(styles.message, mine ? styles.mine : styles.theirs)}
                 >
                   {m.attachments && m.attachments.length > 0 ? (
                     <div className={styles.attachments}>
@@ -363,10 +339,7 @@ function ConversationPane({
           {attachments.length > 0 ? (
             <ul className={styles.pendingList}>
               {attachments.map((a, i) => (
-                <li
-                  key={`${a.url}-${i}`}
-                  className={styles.pendingItem}
-                >
+                <li key={`${a.url}-${i}`} className={styles.pendingItem}>
                   {a.kind === 'video' ? '🎬' : '🖼️'} attached
                   <button
                     type="button"
@@ -389,9 +362,7 @@ function ConversationPane({
               label="Drop photos or video, or browse"
               hint="JPG/PNG/WebP up to 12 MB · MP4/WebM up to 150 MB"
               disabled={attachments.length >= 6}
-              onUploaded={(uploaded) =>
-                setAttachments((prev) => [...prev, ...uploaded])
-              }
+              onUploaded={(uploaded) => setAttachments((prev) => [...prev, ...uploaded])}
             />
           ) : null}
         </div>
@@ -433,9 +404,7 @@ function ConversationPane({
         <button
           type="submit"
           className={styles.send}
-          disabled={
-            sending || (draft.trim().length === 0 && attachments.length === 0)
-          }
+          disabled={sending || (draft.trim().length === 0 && attachments.length === 0)}
         >
           {sending ? 'Sending…' : 'Send'}
         </button>

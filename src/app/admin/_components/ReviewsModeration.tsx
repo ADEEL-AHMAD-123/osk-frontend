@@ -3,10 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { AdminReview } from '@contracts';
-import {
-  useDeleteAdminReviewMutation,
-  useListAdminReviewsQuery,
-} from '@/features/admin';
+import { useDeleteAdminReviewMutation, useListAdminReviewsQuery } from '@/features/admin';
 import { useAppDispatch } from '@/store/hooks';
 import { toastPushed } from '@/features/ui';
 import styles from './ReviewsModeration.module.scss';
@@ -56,7 +53,7 @@ export function ReviewsModeration() {
       await deleteReview(review.id).unwrap();
       dispatch(toastPushed('success', 'Review removed.'));
     } catch {
-      /* global toast */
+      /* surfaced by the global toast */
     } finally {
       setBusyId(null);
     }
@@ -68,8 +65,8 @@ export function ReviewsModeration() {
         <span className={styles.eyebrow}>Admin · Reviews</span>
         <h1 className={styles.title}>Reviews</h1>
         <p className={styles.sub}>
-          Reviews publish immediately. Remove spam, harassment, or anything
-          that names a private individual.
+          Reviews publish immediately. Remove spam, harassment, or anything that names a
+          private individual.
         </p>
       </header>
 

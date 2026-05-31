@@ -3,11 +3,7 @@
 import { useCallback, useState } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui';
-import type {
-  ListingKind,
-  PropertyMedia,
-  PropertyStatus,
-} from '@contracts';
+import type { ListingKind, PropertyMedia, PropertyStatus } from '@contracts';
 import { cn } from '@/lib/cn';
 import { PropertyImageLightbox } from './PropertyImageLightbox';
 import styles from './PropertyGallery.module.scss';
@@ -33,15 +29,16 @@ export function PropertyGallery({
   status,
 }: PropertyGalleryProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const openAt = useCallback((i: number) => setLightboxIndex(i), []);
+  const close = useCallback(() => setLightboxIndex(null), []);
 
+  /* Hooks declared above so the rules-of-hooks lint stays satisfied —
+   * the early return for the empty-gallery case can't come before them. */
   if (images.length === 0) return null;
 
   const total = images.length;
   const heroSet = images.slice(0, 5);
   const thumbs = heroSet.slice(1, 5);
-
-  const openAt = useCallback((i: number) => setLightboxIndex(i), []);
-  const close = useCallback(() => setLightboxIndex(null), []);
 
   return (
     <>
@@ -88,8 +85,7 @@ export function PropertyGallery({
               />
               {isLastWithMore ? (
                 <span className={styles.thumbOverlay}>
-                  <GridIcon />
-                  +{total - 5} more
+                  <GridIcon />+{total - 5} more
                 </span>
               ) : null}
             </button>

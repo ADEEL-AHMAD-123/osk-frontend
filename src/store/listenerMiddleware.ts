@@ -12,7 +12,6 @@ export const listenerMiddleware = createListenerMiddleware();
 /** Sentry-compatible hook point. Wire `Sentry.captureException` here. */
 function reportError(scope: string, detail: unknown): void {
   if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
     console.error(`[error:${scope}]`, detail);
   }
   // TODO(observability): Sentry.captureException(detail, { tags: { scope } });
@@ -76,8 +75,7 @@ const SILENT_ENDPOINTS = new Set([
 listenerMiddleware.startListening({
   matcher: isRejectedWithValue,
   effect: (action, api) => {
-    const meta = (action as { meta?: { arg?: { endpointName?: string } } })
-      .meta;
+    const meta = (action as { meta?: { arg?: { endpointName?: string } } }).meta;
     const endpointName = meta?.arg?.endpointName;
 
     const payload = action.payload as RtkRejection | undefined;

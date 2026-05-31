@@ -52,8 +52,7 @@ export function ContactChannels({
   const viewer = useAppSelector(selectCurrentUser);
   const [panel, setPanel] = useState<Panel>(null);
   const [logCallIntent] = useLogCallIntentMutation();
-  const [fetchWhatsApp, { isFetching: waLoading }] =
-    useLazyGetWhatsAppLinkQuery();
+  const [fetchWhatsApp, { isFetching: waLoading }] = useLazyGetWhatsAppLinkQuery();
   const [startThread, { isLoading: chatStarting }] = useStartThreadMutation();
 
   const compact = variant === 'card';
@@ -66,15 +65,13 @@ export function ContactChannels({
   /* Viewer owns this listing — hide every contact action and show a
    * friendly hint pointing them to the dashboard. Prevents the 403 the
    * backend would return when start-thread checks owner === actor. */
-  const viewerIsOwner = Boolean(
-    ownerId && viewer && viewer.id === ownerId,
-  );
+  const viewerIsOwner = Boolean(ownerId && viewer && viewer.id === ownerId);
 
   if (viewerIsOwner) {
     return (
       <p className={styles.fallback}>
-        This is your listing — contact options aren&rsquo;t shown to owners.
-        Buyer messages and inquiries land in your{' '}
+        This is your listing — contact options aren&rsquo;t shown to owners. Buyer
+        messages and inquiries land in your{' '}
         <a href="/dashboard/messages" className={styles.fallbackLink}>
           dashboard
         </a>
@@ -97,9 +94,7 @@ export function ContactChannels({
       return;
     }
     if (!isAuthed) {
-      dispatch(
-        toastPushed('info', 'Sign in to start a live chat with the owner.'),
-      );
+      dispatch(toastPushed('info', 'Sign in to start a live chat with the owner.'));
       router.push(`/sign-in?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -107,7 +102,7 @@ export function ContactChannels({
       const thread = await startThread({ propertyId }).unwrap();
       router.push(`/dashboard/messages?thread=${thread.id}`);
     } catch {
-      /* global toast handles failure */
+      /* surfaced by the global toast middleware */
     }
   };
 
@@ -128,9 +123,7 @@ export function ContactChannels({
       if (res.enabled && res.href) {
         window.open(res.href, '_blank', 'noopener,noreferrer');
       } else {
-        dispatch(
-          toastPushed('info', 'WhatsApp is not available for this listing.'),
-        );
+        dispatch(toastPushed('info', 'WhatsApp is not available for this listing.'));
       }
     } catch {
       /* failure toast raised globally */

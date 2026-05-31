@@ -29,7 +29,7 @@ export function VerifyEmailBanner() {
         ),
       );
     } catch {
-      /* global toast surfaces the error envelope */
+      /* surfaced by the global toast surfaces the error envelope */
     }
   };
 
@@ -37,12 +37,7 @@ export function VerifyEmailBanner() {
     <aside className={styles.banner} role="status">
       <span className={styles.icon} aria-hidden="true">
         <svg viewBox="0 0 24 24" width="20" height="20">
-          <path
-            d="M4 6h16v12H4z"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          />
+          <path d="M4 6h16v12H4z" fill="none" stroke="currentColor" strokeWidth="1.75" />
           <path
             d="M4 7l8 6 8-6"
             fill="none"
@@ -55,8 +50,8 @@ export function VerifyEmailBanner() {
       <div className={styles.copy}>
         <p className={styles.title}>Verify your email</p>
         <p className={styles.sub}>
-          We sent a link to <strong>{me.email}</strong>. Confirm it to unlock
-          saved listings, inquiries and messaging.
+          We sent a link to <strong>{me.email}</strong>. Confirm it to unlock saved
+          listings, inquiries and messaging.
         </p>
       </div>
       <button
