@@ -8,6 +8,8 @@ export {
   useCreatePropertyMutation,
   useListMyPropertiesQuery,
   useSubmitPropertyForReviewMutation,
+  useMarkPropertySoldMutation,
+  useReopenPropertyMutation,
   useUpdatePropertyMutation,
 } from './propertiesApi';
 export {

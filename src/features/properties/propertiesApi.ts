@@ -12,10 +12,7 @@ import type {
 /** Properties server state — injected into the shared baseApi. */
 export const propertiesApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    listProperties: build.query<
-      Paginated<PropertySummary>,
-      Partial<PropertyFilters>
-    >({
+    listProperties: build.query<Paginated<PropertySummary>, Partial<PropertyFilters>>({
       query: (filters) => ({ url: '/properties', params: filters }),
       transformResponse: (r: ApiSuccess<PropertySummary[]>) => ({
         items: r.data,
@@ -36,8 +33,7 @@ export const propertiesApi = baseApi.injectEndpoints({
     getProperty: build.query<Property, string>({
       query: (slug) => `/properties/${slug}`,
       transformResponse: (r: ApiSuccess<Property>) => r.data,
-      providesTags: (result) =>
-        result ? [{ type: 'Property', id: result.id }] : [],
+      providesTags: (result) => (result ? [{ type: 'Property', id: result.id }] : []),
     }),
 
     getFeaturedProperties: build.query<PropertySummary[], void>({
@@ -66,10 +62,7 @@ export const propertiesApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'PropertyList', id: 'PARTIAL' }],
     }),
 
-    listMyProperties: build.query<
-      Paginated<PropertySummary>,
-      Partial<PropertyFilters>
-    >({
+    listMyProperties: build.query<Paginated<PropertySummary>, Partial<PropertyFilters>>({
       query: (filters) => ({ url: '/properties/mine', params: filters }),
       transformResponse: (r: ApiSuccess<PropertySummary[]>) => ({
         items: r.data,
@@ -89,6 +82,27 @@ export const propertiesApi = baseApi.injectEndpoints({
 
     submitPropertyForReview: build.mutation<Property, string>({
       query: (id) => ({ url: `/properties/${id}/submit`, method: 'POST' }),
+      transformResponse: (r: ApiSuccess<Property>) => r.data,
+      invalidatesTags: (_r, _e, id) => [
+        { type: 'Property', id },
+        { type: 'PropertyList', id: 'MINE' },
+      ],
+    }),
+
+    /** Owner closes a deal — flips status to "sold". */
+    markPropertySold: build.mutation<Property, string>({
+      query: (id) => ({ url: `/properties/${id}/mark-sold`, method: 'POST' }),
+      transformResponse: (r: ApiSuccess<Property>) => r.data,
+      invalidatesTags: (_r, _e, id) => [
+        { type: 'Property', id },
+        { type: 'PropertyList', id: 'MINE' },
+        { type: 'PropertyList', id: 'PARTIAL' },
+      ],
+    }),
+
+    /** Owner re-lists a previously sold property — flips back to "draft". */
+    reopenProperty: build.mutation<Property, string>({
+      query: (id) => ({ url: `/properties/${id}/reopen`, method: 'POST' }),
       transformResponse: (r: ApiSuccess<Property>) => r.data,
       invalidatesTags: (_r, _e, id) => [
         { type: 'Property', id },
@@ -139,18 +153,20 @@ export const propertiesApi = baseApi.injectEndpoints({
       void
     >({
       query: () => '/properties/me/analytics',
-      transformResponse: (r: ApiSuccess<{
-        totals: { views: number; inquiries: number; listings: number };
-        items: Array<{
-          id: string;
-          slug: string;
-          title: string;
-          thumbnail: string;
-          status: string;
-          views: number;
-          inquiries: number;
-        }>;
-      }>) => r.data,
+      transformResponse: (
+        r: ApiSuccess<{
+          totals: { views: number; inquiries: number; listings: number };
+          items: Array<{
+            id: string;
+            slug: string;
+            title: string;
+            thumbnail: string;
+            status: string;
+            views: number;
+            inquiries: number;
+          }>;
+        }>,
+      ) => r.data,
       providesTags: [{ type: 'PropertyList', id: 'MY-ANALYTICS' }],
     }),
   }),
@@ -165,6 +181,8 @@ export const {
   useCreatePropertyMutation,
   useListMyPropertiesQuery,
   useSubmitPropertyForReviewMutation,
+  useMarkPropertySoldMutation,
+  useReopenPropertyMutation,
   useUpdatePropertyMutation,
   useRecordPropertyViewMutation,
   useGetMyAnalyticsQuery,

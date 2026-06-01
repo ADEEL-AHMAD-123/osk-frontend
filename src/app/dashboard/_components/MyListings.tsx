@@ -5,6 +5,8 @@ import Link from 'next/link';
 import type { PropertyStatus } from '@contracts';
 import {
   useListMyPropertiesQuery,
+  useMarkPropertySoldMutation,
+  useReopenPropertyMutation,
   useSubmitPropertyForReviewMutation,
 } from '@/features/properties';
 import { toastPushed } from '@/features/ui';
@@ -44,6 +46,9 @@ export function MyListings() {
     limit: PAGE_SIZE,
   });
   const [submitForReview, submitState] = useSubmitPropertyForReviewMutation();
+  const [markSold, soldState] = useMarkPropertySoldMutation();
+  const [reopen, reopenState] = useReopenPropertyMutation();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const onSubmit = async (id: string) => {
     try {
@@ -51,6 +56,43 @@ export function MyListings() {
       dispatch(toastPushed('success', 'Listing submitted for review.'));
     } catch {
       /* surfaced by the global error toast handles this */
+    }
+  };
+
+  const onMarkSold = async (id: string, title: string) => {
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm(
+        `Mark "${title}" as sold? It will stop appearing in public search. You can re-open it later if needed.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(id);
+    try {
+      await markSold(id).unwrap();
+      dispatch(toastPushed('success', `"${title}" marked as sold.`));
+    } catch {
+      /* surfaced by the global error toast */
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onReopen = async (id: string, title: string) => {
+    setBusyId(id);
+    try {
+      await reopen(id).unwrap();
+      dispatch(
+        toastPushed(
+          'success',
+          `"${title}" re-opened as a draft. Edit and re-submit for review when ready.`,
+        ),
+      );
+    } catch {
+      /* surfaced by the global error toast */
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -141,6 +183,24 @@ export function MyListings() {
                         onClick={() => onSubmit(p.id)}
                       >
                         Submit
+                      </Button>
+                    ) : status === 'published' ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={soldState.isLoading || busyId === p.id}
+                        onClick={() => onMarkSold(p.id, p.title)}
+                      >
+                        {busyId === p.id ? 'Saving…' : 'Mark sold'}
+                      </Button>
+                    ) : status === 'sold' ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={reopenState.isLoading || busyId === p.id}
+                        onClick={() => onReopen(p.id, p.title)}
+                      >
+                        {busyId === p.id ? 'Opening…' : 'Re-open'}
                       </Button>
                     ) : (
                       <Link href={`/property/${p.slug}`} className={styles.viewLink}>
