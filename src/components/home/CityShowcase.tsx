@@ -36,7 +36,7 @@ const CITIES: City[] = [
     name: 'Miami',
     state: 'FL',
     blurb: 'Oceanfront condos and South Beach lofts.',
-    image: img('photo-1545216355-4ddee8be1ace'),
+    image: img('photo-1493809842364-78817add7ffb'),
     listings: '980 listings',
   },
   {
@@ -75,18 +75,14 @@ export function CityShowcase() {
           Find a home in your <em>favorite city.</em>
         </h2>
         <p className={styles.sub}>
-          Browse hand-vetted homes across America&rsquo;s most sought-after
-          markets — from coastal towers to canyon retreats.
+          Browse hand-vetted homes across America&rsquo;s most sought-after markets — from
+          coastal towers to canyon retreats.
         </p>
       </header>
 
       <div className={styles.grid}>
         {CITIES.map((city) => (
-          <Link
-            key={city.id}
-            href={`/buy?city=${city.id}`}
-            className={styles.card}
-          >
+          <Link key={city.id} href={`/buy?city=${city.id}`} className={styles.card}>
             <div className={styles.media}>
               <Image
                 src={city.image}
