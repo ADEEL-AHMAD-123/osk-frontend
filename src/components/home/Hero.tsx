@@ -19,7 +19,7 @@ export function Hero() {
         <div className={styles.copy}>
           <span className={styles.eyebrow}>
             <span className={styles.eyebrowDot} aria-hidden="true" />
-            American Real Estate, Curated
+            Real Estate, Curated
           </span>
 
           <h1 className={styles.heading}>
@@ -29,9 +29,8 @@ export function Hero() {
           </h1>
 
           <p className={styles.sub}>
-            Search homes, land and commercial space across every major
-            U.S. market — from a brownstone in Brooklyn to a ranch outside
-            Austin.
+            Search homes, land and commercial space across major markets — from city
+            brownstones to countryside ranches.
           </p>
         </div>
 
