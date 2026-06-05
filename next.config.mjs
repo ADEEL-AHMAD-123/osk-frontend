@@ -1,5 +1,15 @@
 import path from 'node:path';
 
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
+const proxyOriginFromPublic = (() => {
+  try {
+    return new URL(apiBase).origin;
+  } catch {
+    return null;
+  }
+})();
+const API_PROXY_ORIGIN = process.env.API_PROXY_ORIGIN ?? proxyOriginFromPublic;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -38,6 +48,15 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    if (!API_PROXY_ORIGIN) return [];
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${API_PROXY_ORIGIN}/api/v1/:path*`,
       },
     ];
   },

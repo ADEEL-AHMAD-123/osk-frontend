@@ -10,8 +10,23 @@ import type { AuthResult, ApiSuccess } from '@contracts';
 import { credentialsRefreshed, loggedOut } from '@/features/auth/authSlice';
 import type { RootState } from '../index';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5000/api/v1';
+function resolveApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  /* If a cross-origin absolute URL is configured in the browser, prefer
+   * same-origin `/api/v1` so auth cookies stay first-party (incognito-safe)
+   * and can be proxied via Next.js rewrites. */
+  if (configured && typeof window !== 'undefined') {
+    try {
+      const parsed = new URL(configured);
+      if (parsed.origin !== window.location.origin) return '/api/v1';
+    } catch {
+      // Non-URL values (like '/api/v1') are fine as-is.
+    }
+  }
+  return configured || '/api/v1';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 /** Raw query — attaches the in-memory access token and sends the refresh cookie. */
 const rawBaseQuery = fetchBaseQuery({
