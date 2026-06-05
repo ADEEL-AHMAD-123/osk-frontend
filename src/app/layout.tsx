@@ -29,10 +29,18 @@ const DEFAULT_THEME: ThemeName =
   envTheme && THEMES.includes(envTheme) ? envTheme : 'theme-luxe-light';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+const DEFAULT_SITE_TITLE =
+  'OSK Property Real Estate | Buy, Sell & Rent Homes & Properties.';
+
+function withEllipsis(input: string, max = 42): string {
+  const text = input.trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await serverFetch<SiteSettings>('/settings', 0);
-  const siteTitle = settings?.siteTitle?.trim() || 'OSK — Real Estate';
+  const siteTitle = withEllipsis(settings?.siteTitle?.trim() || DEFAULT_SITE_TITLE);
   const companyName = settings?.companyName?.trim() || 'OSK';
 
   return {

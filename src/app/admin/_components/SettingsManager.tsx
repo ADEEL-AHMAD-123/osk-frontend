@@ -68,10 +68,13 @@ const DEFAULT_LEGAL: SiteSettingsLegal = {
   termsUpdatedAt: '',
 };
 
+const DEFAULT_SITE_TITLE =
+  'OSK Property Real Estate | Buy, Sell & Rent Homes & Properties.';
+
 function fromSettings(s: SiteSettings): FormState {
   return {
     activeTheme: s.activeTheme,
-    siteTitle: s.siteTitle ?? 'OSK — Real Estate',
+    siteTitle: s.siteTitle ?? DEFAULT_SITE_TITLE,
     companyName: s.companyName,
     logoUrl: s.logoUrl,
     email: s.contact.email,
