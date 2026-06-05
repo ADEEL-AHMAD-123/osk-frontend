@@ -4,12 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { Button } from '@/components/ui';
-import {
-  CitySelectPanel,
-  FilterDropdown,
-  RangePanel,
-  type RangeValue,
-} from './filters';
+import { CitySelectPanel, FilterDropdown, RangePanel, type RangeValue } from './filters';
 import {
   AREA_PRESETS_SQFT,
   LISTING_INTENTS,
@@ -28,11 +23,7 @@ import {
   selectActiveCountry,
   useAllowedCountries,
 } from '@/features/geo';
-import {
-  currencySymbolForCountry,
-  getCountry,
-  type CityOption,
-} from '@/lib/geoData';
+import { currencySymbolForCountry, getCountry, type CityOption } from '@/lib/geoData';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { cn } from '@/lib/cn';
 import styles from './HeroSearch.module.scss';
@@ -42,9 +33,7 @@ import styles from './HeroSearch.module.scss';
  * UI; "Rent" is handled by the top intent tab, while the available types
  * (Homes / Plots / Commercial) stay the same regardless of buy vs. rent.
  */
-const VISIBLE_CATEGORIES = PROPERTY_CATEGORIES.filter(
-  (c) => c.id !== 'rentals',
-);
+const VISIBLE_CATEGORIES = PROPERTY_CATEGORIES.filter((c) => c.id !== 'rentals');
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Validation. Each dropdown enforces its own internal rules; this schema
@@ -80,11 +69,7 @@ const formSchema = z
         message: 'Max price must be greater than min',
       });
     }
-    if (
-      data.areaMin !== null &&
-      data.areaMax !== null &&
-      data.areaMin >= data.areaMax
-    ) {
+    if (data.areaMin !== null && data.areaMax !== null && data.areaMin >= data.areaMax) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['areaMax'],
@@ -109,19 +94,24 @@ export function HeroSearch() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const activeCountry = useAppSelector(selectActiveCountry);
+  const [hydrated, setHydrated] = useState(false);
   /* Admin-restricted country allow-list, if any. `null` = show all. */
   const allowedCountries = useAllowedCountries();
 
   const [intent, setIntent] = useState<ListingIntent>('buy');
   const [city, setCity] = useState<CityOption | null>(null);
   const [location, setLocation] = useState('');
-  const [category, setCategory] = useState<PropertyCategory>(
-    VISIBLE_CATEGORIES[0]!,
-  );
+  const [category, setCategory] = useState<PropertyCategory>(VISIBLE_CATEGORIES[0]!);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [price, setPrice] = useState<RangeValue>(EMPTY_RANGE);
   const [area, setArea] = useState<RangeValue>(EMPTY_RANGE);
   const [errors, setErrors] = useState<FieldErrors>({});
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  const displayCountry = hydrated ? activeCountry : 'US';
 
   /* Whenever the user switches country, drop the city selection (it
    * belonged to the previous country) and reset price (currency changed,
@@ -132,12 +122,12 @@ export function HeroSearch() {
   }, [activeCountry]);
 
   const country = useMemo(
-    () => getCountry(activeCountry) ?? getCountry('US')!,
-    [activeCountry],
+    () => getCountry(displayCountry) ?? getCountry('US')!,
+    [displayCountry],
   );
   const currencySymbol = useMemo(
-    () => currencySymbolForCountry(activeCountry),
-    [activeCountry],
+    () => currencySymbolForCountry(displayCountry),
+    [displayCountry],
   );
 
   const cityLabel = city
@@ -150,20 +140,12 @@ export function HeroSearch() {
 
   const priceLabel = useMemo(
     () =>
-      formatRangeLabel(
-        price,
-        (v) => formatPriceCompact(v, currencySymbol),
-        'Any price',
-      ),
+      formatRangeLabel(price, (v) => formatPriceCompact(v, currencySymbol), 'Any price'),
     [price, currencySymbol],
   );
-  const areaLabel = useMemo(
-    () => formatRangeLabel(area, formatSqFt, 'Any size'),
-    [area],
-  );
+  const areaLabel = useMemo(() => formatRangeLabel(area, formatSqFt, 'Any size'), [area]);
 
-  const pricePresets =
-    intent === 'rent' ? PRICE_PRESETS_RENT : PRICE_PRESETS_BUY;
+  const pricePresets = intent === 'rent' ? PRICE_PRESETS_RENT : PRICE_PRESETS_BUY;
   const priceUnitHint = intent === 'rent' ? ' /mo' : '';
   const priceValue =
     priceLabel === 'Any price' ? priceLabel : `${priceLabel}${priceUnitHint}`;
@@ -213,8 +195,7 @@ export function HeroSearch() {
     }
     setErrors({});
 
-    const route =
-      LISTING_INTENTS.find((i) => i.id === intent)?.route ?? '/buy';
+    const route = LISTING_INTENTS.find((i) => i.id === intent)?.route ?? '/buy';
     const params = new URLSearchParams();
     params.set('intent', intent);
     params.set('country', parsed.data.country);
@@ -224,8 +205,10 @@ export function HeroSearch() {
     if (parsed.data.subcategoryIds.length > 0) {
       params.set('subcategory', parsed.data.subcategoryIds.join(','));
     }
-    if (parsed.data.priceMin !== null) params.set('priceMin', String(parsed.data.priceMin));
-    if (parsed.data.priceMax !== null) params.set('priceMax', String(parsed.data.priceMax));
+    if (parsed.data.priceMin !== null)
+      params.set('priceMin', String(parsed.data.priceMin));
+    if (parsed.data.priceMax !== null)
+      params.set('priceMax', String(parsed.data.priceMax));
     if (parsed.data.areaMin !== null) params.set('areaMin', String(parsed.data.areaMin));
     if (parsed.data.areaMax !== null) params.set('areaMax', String(parsed.data.areaMax));
 
@@ -262,7 +245,7 @@ export function HeroSearch() {
             <FilterDropdown
               label="Country"
               value={countryLabel}
-              active={activeCountry !== 'US'}
+              active={displayCountry !== 'US'}
               icon={<GlobeIcon />}
               panelWidth="22rem"
             >
@@ -324,11 +307,7 @@ export function HeroSearch() {
             ) : null}
           </label>
 
-          <Button
-            type="submit"
-            size="lg"
-            className={cn(styles.row1Cell, styles.submit)}
-          >
+          <Button type="submit" size="lg" className={cn(styles.row1Cell, styles.submit)}>
             <SearchIcon />
             <span>Search</span>
           </Button>
@@ -337,11 +316,7 @@ export function HeroSearch() {
         {/* Row 2 — Property type tabs + sub-type chips + Price + Area */}
         <div className={styles.row2}>
           <div className={styles.typeRow}>
-            <div
-              className={styles.typeTabs}
-              role="tablist"
-              aria-label="Property type"
-            >
+            <div className={styles.typeTabs} role="tablist" aria-label="Property type">
               {VISIBLE_CATEGORIES.map((cat) => {
                 const active = cat.id === category.id;
                 return (
@@ -350,10 +325,7 @@ export function HeroSearch() {
                     type="button"
                     role="tab"
                     aria-selected={active}
-                    className={cn(
-                      styles.typeTab,
-                      active && styles.typeTabActive,
-                    )}
+                    className={cn(styles.typeTab, active && styles.typeTabActive)}
                     onClick={() => onCategory(cat)}
                   >
                     {cat.label}

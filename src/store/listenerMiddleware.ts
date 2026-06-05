@@ -67,6 +67,7 @@ function humanFieldLabel(field: string): string {
 const SILENT_ENDPOINTS = new Set([
   'login',
   'register',
+  'session',
   'forgotPassword',
   'resetPassword',
   'verifyEmail',
@@ -80,10 +81,20 @@ listenerMiddleware.startListening({
 
     const payload = action.payload as RtkRejection | undefined;
     const message = friendlyMessage(payload);
+    const status = typeof payload?.status === 'number' ? payload.status : 0;
+    const expectedSession401 = endpointName === 'session' && status === 401;
+
+    if (expectedSession401) {
+      // Visiting public pages while signed out is normal: session bootstrap
+      // can 401 and should not appear as an app error.
+      return;
+    }
 
     if (!endpointName || !SILENT_ENDPOINTS.has(endpointName)) {
       api.dispatch(toastPushed('error', message));
     }
-    reportError('rtk-query', action.payload);
+    if (!endpointName || !SILENT_ENDPOINTS.has(endpointName)) {
+      reportError('rtk-query', action.payload);
+    }
   },
 });

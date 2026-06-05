@@ -39,6 +39,7 @@ export interface SiteSettingsGeo {
 /** Returned by GET /settings and PATCH /admin/settings. */
 export interface SiteSettings {
   activeTheme: ThemeName;
+  siteTitle: string;
   companyName: string;
   logoUrl: string;
   contact: SiteSettingsContact;
@@ -49,6 +50,7 @@ export interface SiteSettings {
 
 export type SiteSettingsPatch = Partial<{
   activeTheme: ThemeName;
+  siteTitle: string;
   companyName: string;
   logoUrl: string;
   contact: Partial<SiteSettingsContact>;

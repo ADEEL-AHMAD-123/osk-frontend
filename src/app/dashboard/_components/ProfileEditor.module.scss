@@ -45,14 +45,9 @@
     content: '';
     position: absolute;
     inset-block-start: 0;
-    inset-inline-start: space('6');
-    inset-inline-end: space('6');
+    inset-inline: space('6');
     block-size: 3px;
-    background: linear-gradient(
-      90deg,
-      var(--color-accent),
-      transparent
-    );
+    background: linear-gradient(90deg, var(--color-accent), transparent);
   }
 }
 
@@ -67,7 +62,7 @@
   display: flex;
   flex-direction: column;
   gap: space('4');
-  max-inline-size: 520px;
+  max-inline-size: 720px;
 }
 
 .identity {
@@ -151,6 +146,72 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text-secondary);
+}
+
+.completeCard,
+.incompleteCard {
+  display: flex;
+  flex-direction: column;
+  gap: space('1');
+  padding: space('3') space('4');
+  border-radius: radius('lg');
+  border: 1px solid var(--border-default);
+}
+
+.incompleteCard {
+  background: var(--color-warning-soft);
+  border-color: var(--color-warning);
+}
+
+.completeCard {
+  background: var(--color-success-soft);
+  border-color: var(--color-success);
+}
+
+.completionTitle {
+  margin: 0;
+  font-family: $font-display;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.completionText {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: space('3');
+  padding: space('4');
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: radius('lg');
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: $font-display;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space('3');
+
+  @include respond('md') {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dropdownField {
+  min-inline-size: 0;
 }
 
 .actions {

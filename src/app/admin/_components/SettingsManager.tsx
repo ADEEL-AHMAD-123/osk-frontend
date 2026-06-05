@@ -25,6 +25,7 @@ const THEME_LABELS: Record<ThemeName, { label: string; tagline: string }> = {
 /* Shape we render the form against — flat fields so editing is simple. */
 interface FormState {
   activeTheme: ThemeName;
+  siteTitle: string;
   companyName: string;
   logoUrl: string;
   email: string;
@@ -43,6 +44,7 @@ interface FormState {
 function fromSettings(s: SiteSettings): FormState {
   return {
     activeTheme: s.activeTheme,
+    siteTitle: s.siteTitle ?? 'OSK — Real Estate',
     companyName: s.companyName,
     logoUrl: s.logoUrl,
     email: s.contact.email,
@@ -64,10 +66,17 @@ export function SettingsManager() {
   const { data, isLoading, isError } = useGetSiteSettingsQuery();
   const [saveSettings, { isLoading: saving }] = useUpdateSiteSettingsMutation();
   const [form, setForm] = useState<FormState | null>(null);
+  const [initialForm, setInitialForm] = useState<FormState | null>(null);
 
   useEffect(() => {
-    if (data && !form) setForm(fromSettings(data));
+    if (!data) return;
+    const next = fromSettings(data);
+    setInitialForm(next);
+    if (!form) setForm(next);
   }, [data, form]);
+
+  const hasChanges =
+    !!form && !!initialForm && JSON.stringify(form) !== JSON.stringify(initialForm);
 
   const setField = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((prev) => (prev ? { ...prev, [k]: v } : prev));
@@ -84,8 +93,9 @@ export function SettingsManager() {
     e.preventDefault();
     if (!form) return;
     try {
-      await saveSettings({
+      const saved = await saveSettings({
         activeTheme: form.activeTheme,
+        siteTitle: form.siteTitle.trim(),
         companyName: form.companyName,
         logoUrl: form.logoUrl,
         contact: {
@@ -104,6 +114,9 @@ export function SettingsManager() {
           appQrUrl: form.appQrUrl.trim(),
         },
       }).unwrap();
+      const next = fromSettings(saved);
+      setForm(next);
+      setInitialForm(next);
       dispatch(toastPushed('success', 'Settings saved — site updated.'));
     } catch {
       /* surfaced by the global toast handles the error envelope */
@@ -184,6 +197,14 @@ export function SettingsManager() {
         {/* ── branding ─────────────────────────────────────────────────── */}
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Brand</h2>
+          <TextField
+            label="Website title"
+            value={form.siteTitle}
+            onChange={(e) => setField('siteTitle', e.target.value)}
+            maxLength={120}
+            hint="Used for browser tab title and SEO default title."
+            required
+          />
           <TextField
             label="Company name"
             value={form.companyName}
@@ -298,11 +319,11 @@ export function SettingsManager() {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Mobile app</h2>
           <p className={styles.sectionHint}>
-            Drives the &ldquo;Get the OSK App&rdquo; poster on the home page.
-            Each URL is optional — when every field is empty the poster
-            stays hidden. The QR resolves to your <em>App QR URL</em> (a
-            smart-link page that detects the visitor&rsquo;s OS works best),
-            or falls back to whichever store URL you&rsquo;ve filled in.
+            Drives the &ldquo;Get the OSK App&rdquo; poster on the home page. Each URL is
+            optional — when every field is empty the poster stays hidden. The QR resolves
+            to your <em>App QR URL</em> (a smart-link page that detects the
+            visitor&rsquo;s OS works best), or falls back to whichever store URL
+            you&rsquo;ve filled in.
           </p>
           <TextField
             label="App Store URL"
@@ -331,7 +352,7 @@ export function SettingsManager() {
         </div>
 
         <div className={styles.actions}>
-          <Button type="submit" size="lg" disabled={saving}>
+          <Button type="submit" size="lg" disabled={saving || !hasChanges}>
             {saving ? 'Saving…' : 'Save settings'}
           </Button>
         </div>

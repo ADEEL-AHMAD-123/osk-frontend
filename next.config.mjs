@@ -3,12 +3,29 @@ import path from 'node:path';
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
 const proxyOriginFromPublic = (() => {
   try {
-    return new URL(apiBase).origin;
+    const url = new URL(apiBase);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return url.origin;
+    }
+    return null;
   } catch {
     return null;
   }
 })();
-const API_PROXY_ORIGIN = process.env.API_PROXY_ORIGIN ?? proxyOriginFromPublic;
+
+function normalizeProxyOrigin(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(String(value).trim());
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+const API_PROXY_ORIGIN =
+  normalizeProxyOrigin(process.env.API_PROXY_ORIGIN) ?? proxyOriginFromPublic;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

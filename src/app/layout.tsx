@@ -30,20 +30,26 @@ const DEFAULT_THEME: ThemeName =
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: 'OSK — Real Estate',
-    template: '%s · OSK',
-  },
-  description: 'Discover homes, plots, commercial space and rentals with OSK.',
-  openGraph: {
-    type: 'website',
-    siteName: 'OSK',
-    url: SITE_URL,
-  },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await serverFetch<SiteSettings>('/settings', 0);
+  const siteTitle = settings?.siteTitle?.trim() || 'OSK — Real Estate';
+  const companyName = settings?.companyName?.trim() || 'OSK';
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: siteTitle,
+      template: `%s · ${companyName}`,
+    },
+    description: 'Discover homes, plots, commercial space and rentals with OSK.',
+    openGraph: {
+      type: 'website',
+      siteName: companyName,
+      url: SITE_URL,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   /* Resolve the active theme server-side so first paint has no flash. The
