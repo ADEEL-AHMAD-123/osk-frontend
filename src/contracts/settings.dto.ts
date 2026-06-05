@@ -36,6 +36,18 @@ export interface SiteSettingsGeo {
   allowedCountries: string[];
 }
 
+export interface SiteSettingsStat {
+  value: string;
+  label: string;
+}
+
+export interface SiteSettingsLegal {
+  privacyMarkdown: string;
+  termsMarkdown: string;
+  privacyUpdatedAt: string;
+  termsUpdatedAt: string;
+}
+
 /** Returned by GET /settings and PATCH /admin/settings. */
 export interface SiteSettings {
   activeTheme: ThemeName;
@@ -45,6 +57,8 @@ export interface SiteSettings {
   contact: SiteSettingsContact;
   appLinks: SiteSettingsAppLinks;
   geo: SiteSettingsGeo;
+  homeStats: SiteSettingsStat[];
+  legal: SiteSettingsLegal;
   updatedAt: string;
 }
 
@@ -56,4 +70,6 @@ export type SiteSettingsPatch = Partial<{
   contact: Partial<SiteSettingsContact>;
   appLinks: Partial<SiteSettingsAppLinks>;
   geo: Partial<SiteSettingsGeo>;
+  homeStats: SiteSettingsStat[];
+  legal: Partial<SiteSettingsLegal>;
 }>;

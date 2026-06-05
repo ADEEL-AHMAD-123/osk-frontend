@@ -42,6 +42,48 @@
   border-radius: radius('lg');
 }
 
+.tabBar {
+  display: inline-flex;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: radius('pill');
+  box-shadow: var(--shadow-sm);
+}
+
+.tab {
+  padding: space('2') space('4');
+  border: none;
+  background: transparent;
+  border-radius: radius('pill');
+  color: var(--text-secondary);
+  font-family: $font-display;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast,
+    color $transition-fast;
+
+  @include focus-ring;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.tabActive {
+  background: var(--color-primary);
+  color: var(--text-inverse);
+
+  &:hover {
+    color: var(--text-inverse);
+  }
+}
+
 /* ─── form ───────────────────────────────────────────────────────────── */
 .form {
   display: flex;
@@ -64,8 +106,7 @@
     content: '';
     position: absolute;
     inset-block-start: 0;
-    inset-inline-start: space('5');
-    inset-inline-end: space('5');
+    inset-inline: space('5');
     block-size: 3px;
     background: linear-gradient(90deg, var(--color-accent), transparent);
   }
@@ -91,6 +132,38 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text-secondary);
+}
+
+.textareaField {
+  display: flex;
+  flex-direction: column;
+  gap: space('2');
+}
+
+.textarea {
+  inline-size: 100%;
+  min-block-size: 220px;
+  padding: space('3');
+  border-radius: radius('md');
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  resize: vertical;
+  transition:
+    border-color $transition-fast,
+    box-shadow $transition-fast;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--ring-focus);
+  }
 }
 
 .grid2 {
