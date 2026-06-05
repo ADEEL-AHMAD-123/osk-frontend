@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import styles from './FilterDropdown.module.scss';
 
@@ -52,9 +53,7 @@ export function FilterDropdown({
   children,
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
-  const [panelStyle, setPanelStyle] = useState<{ left?: number; right?: number }>(
-    {},
-  );
+  const [panelStyle, setPanelStyle] = useState<{ left?: number; top?: number }>({});
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const panelId = useId();
@@ -71,10 +70,7 @@ export function FilterDropdown({
     const onPointer = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
-      if (
-        panelRef.current?.contains(target) ||
-        triggerRef.current?.contains(target)
-      ) {
+      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) {
         return;
       }
       setOpen(false);
@@ -93,21 +89,33 @@ export function FilterDropdown({
     };
   }, [open, close]);
 
-  // Keep the popover within the viewport on narrow screens.
+  // Keep the popover within the viewport while rendering it above the
+  // hero/next sections via a portal mounted on document.body.
   useLayoutEffect(() => {
     if (!open) return;
-    const trigger = triggerRef.current;
-    const panel = panelRef.current;
-    if (!trigger || !panel) return;
-    const triggerRect = trigger.getBoundingClientRect();
-    const panelWidthPx = panel.offsetWidth;
-    const viewport = window.innerWidth;
-    const pad = 12;
-    let leftAbs = align === 'end'
-      ? triggerRect.right - panelWidthPx
-      : triggerRect.left;
-    leftAbs = Math.max(pad, Math.min(leftAbs, viewport - panelWidthPx - pad));
-    setPanelStyle({ left: leftAbs - triggerRect.left });
+    const syncPosition = () => {
+      const trigger = triggerRef.current;
+      const panel = panelRef.current;
+      if (!trigger || !panel) return;
+      const triggerRect = trigger.getBoundingClientRect();
+      const panelWidthPx = panel.offsetWidth;
+      const viewport = window.innerWidth;
+      const pad = 12;
+      let left = align === 'end' ? triggerRect.right - panelWidthPx : triggerRect.left;
+      left = Math.max(pad, Math.min(left, viewport - panelWidthPx - pad));
+      setPanelStyle({
+        left,
+        top: triggerRect.bottom + 8,
+      });
+    };
+
+    syncPosition();
+    window.addEventListener('resize', syncPosition);
+    window.addEventListener('scroll', syncPosition, true);
+    return () => {
+      window.removeEventListener('resize', syncPosition);
+      window.removeEventListener('scroll', syncPosition, true);
+    };
   }, [open, align]);
 
   const onTriggerKey = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -162,18 +170,21 @@ export function FilterDropdown({
         </span>
       ) : null}
 
-      {open ? (
-        <div
-          ref={panelRef}
-          id={panelId}
-          role="dialog"
-          aria-label={label}
-          className={styles.panel}
-          style={{ inlineSize: panelWidth, ...panelStyle }}
-        >
-          {children(close)}
-        </div>
-      ) : null}
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={panelRef}
+              id={panelId}
+              role="dialog"
+              aria-label={label}
+              className={styles.panel}
+              style={{ inlineSize: panelWidth, ...panelStyle }}
+            >
+              {children(close)}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

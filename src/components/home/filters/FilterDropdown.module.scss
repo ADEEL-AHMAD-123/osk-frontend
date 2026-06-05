@@ -34,27 +34,6 @@
   }
 }
 
-.triggerActive {
-  color: var(--color-primary);
-
-  .label {
-    color: var(--color-primary);
-  }
-
-  .value {
-    color: var(--text-primary);
-    font-weight: 600;
-  }
-}
-
-.triggerInvalid {
-  border-color: var(--color-danger);
-
-  .label {
-    color: var(--color-danger);
-  }
-}
-
 .icon {
   display: inline-flex;
   align-items: center;
@@ -98,6 +77,27 @@
   text-overflow: ellipsis;
 }
 
+.triggerActive {
+  color: var(--color-primary);
+
+  .label {
+    color: var(--color-primary);
+  }
+
+  .value {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
+.triggerInvalid {
+  border-color: var(--color-danger);
+
+  .label {
+    color: var(--color-danger);
+  }
+}
+
 .caret {
   display: inline-flex;
   color: var(--text-muted);
@@ -114,15 +114,15 @@
 
 /* ─── popover panel ──────────────────────────────────────────────────── */
 .panel {
-  position: absolute;
-  inset-block-start: calc(100% + #{space('2')});
-  inset-inline-start: 0;
-  z-index: z('dropdown');
+  position: fixed;
+  z-index: 999;
   max-inline-size: calc(100vw - #{space('5')});
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: radius('lg');
+
   @include elevation('lg');
+
   overflow: hidden;
   animation: pop-in $transition-base both;
 
@@ -136,6 +136,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

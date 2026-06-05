@@ -62,20 +62,20 @@
   border-radius: radius('lg');
   box-shadow: var(--shadow-sm);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  isolation: isolate;
+
+  &:focus-within {
+    z-index: 5;
+  }
 
   &::before {
     content: '';
     position: absolute;
     inset-block-start: 0;
-    inset-inline-start: space('5');
-    inset-inline-end: space('5');
+    inset-inline: space('5');
     block-size: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--color-accent),
-      transparent
-    );
+    background: linear-gradient(90deg, var(--color-accent), transparent);
   }
 }
 
@@ -113,8 +113,7 @@
 }
 
 .input,
-.select,
-.textarea {
+.select {
   padding: space('3') space('4');
   background: var(--bg-card);
   border: 1px solid var(--border-default);
@@ -138,9 +137,29 @@
 }
 
 .textarea {
+  padding: space('3') space('4');
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: radius('md');
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  font-family: inherit;
   resize: vertical;
   min-block-size: 120px;
   line-height: 1.55;
+  transition:
+    border-color $transition-fast,
+    box-shadow $transition-fast;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--ring-focus);
+  }
 }
 
 .fieldHint {

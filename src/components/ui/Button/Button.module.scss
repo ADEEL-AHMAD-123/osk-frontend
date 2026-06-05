@@ -10,9 +10,11 @@
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
+  text-decoration: none;
   transition:
     background-color $transition-fast,
     border-color $transition-fast,
+    color $transition-fast,
     transform $transition-fast;
 
   @include focus-ring;
@@ -54,6 +56,11 @@
   color: var(--btn-primary-fg);
   border: 1px solid transparent;
 
+  &:focus-visible,
+  &:active:not(:disabled) {
+    color: var(--btn-primary-fg);
+  }
+
   &:hover:not(:disabled) {
     background: var(--btn-primary-hover);
     color: var(--btn-primary-fg);
@@ -64,6 +71,11 @@
   background: var(--btn-secondary-bg);
   color: var(--btn-secondary-fg);
   border: 1px solid var(--border-strong);
+
+  &:focus-visible,
+  &:active:not(:disabled) {
+    color: var(--btn-secondary-fg);
+  }
 
   &:hover:not(:disabled) {
     background: var(--btn-secondary-hover);
@@ -76,6 +88,11 @@
   color: var(--btn-ghost-fg);
   border: 1px solid transparent;
 
+  &:focus-visible,
+  &:active:not(:disabled) {
+    color: var(--btn-ghost-fg);
+  }
+
   &:hover:not(:disabled) {
     background: var(--btn-ghost-hover);
     color: var(--btn-ghost-fg);
@@ -86,6 +103,11 @@
   background: var(--btn-danger-bg);
   color: var(--btn-danger-fg);
   border: 1px solid transparent;
+
+  &:focus-visible,
+  &:active:not(:disabled) {
+    color: var(--btn-danger-fg);
+  }
 
   &:hover:not(:disabled) {
     background: var(--btn-danger-hover);
