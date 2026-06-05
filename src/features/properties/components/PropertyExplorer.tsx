@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { ListingKind, PropertyType } from '@contracts';
 import { PropertyCard } from '@/components/property/PropertyCard';
@@ -9,6 +9,13 @@ import { cn } from '@/lib/cn';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 // Same-feature siblings — direct imports to avoid a self-referential cycle.
 import { US_CITIES } from '@/components/home/heroSearch.data';
+import {
+  CountrySelect,
+  activeCountryChanged,
+  selectActiveCountry,
+  useAllowedCountries,
+} from '@/features/geo';
+import { getCountry } from '@/lib/geoData';
 import { useListPropertiesQuery } from '../propertiesApi';
 import {
   filtersChanged,
@@ -86,17 +93,47 @@ export function PropertyExplorer({
   const searchParams = useSearchParams();
   const filters = useAppSelector(selectFilters);
   const viewMode = useAppSelector(selectViewMode);
+  const activeCountry = useAppSelector(selectActiveCountry);
+  /* Admin-restricted country allow-list (or null if unrestricted). The
+   * hook also self-corrects `activeCountry` when it falls outside the
+   * set, so the explorer never holds a stale off-list country. */
+  const allowedCountries = useAllowedCountries();
+
+  /* Cross-country opt-in. Off by default, so the explorer hard-filters to
+   * the user's country and an empty result surfaces a friendly CTA. The
+   * user clicks "Show listings worldwide" to flip this on for the current
+   * page — we don't change the global `activeCountry` so other surfaces
+   * still feel personalised. Reset whenever the country changes so each
+   * new country starts in country-only mode. */
+  const [worldwide, setWorldwide] = useState(false);
+  useEffect(() => {
+    setWorldwide(false);
+  }, [activeCountry]);
+
+  const activeCountryName = useMemo(
+    () => getCountry(activeCountry)?.name ?? activeCountry,
+    [activeCountry],
+  );
 
   /* Hydrate filters from the URL on mount + whenever query params change.
    * The hero search bar drives these params on submit, so users land on
-   * /buy?q=…&city=…&priceMin=…&priceMax=… and the toolbar reflects them. */
+   * /buy?country=…&q=…&city=…&priceMin=…&priceMax=… and the toolbar
+   * reflects them. A `country` param is the strongest signal — it also
+   * updates the global slice so every other surface picks it up. */
   useEffect(() => {
     const q = searchParams.get('q') ?? undefined;
     const cityParam = searchParams.get('city') ?? undefined;
+    const countryParam = searchParams.get('country');
     const intentParam = searchParams.get('intent');
     const priceMinRaw = searchParams.get('priceMin');
     const priceMaxRaw = searchParams.get('priceMax');
     const bedsRaw = searchParams.get('beds') ?? searchParams.get('bedrooms');
+
+    if (countryParam && countryParam.length === 2) {
+      /* Update the global slice from the URL — keeps the header + form +
+       * filter view all on the same country. */
+      dispatch(activeCountryChanged(countryParam.toUpperCase()));
+    }
 
     const next: Parameters<typeof filtersChanged>[0] = {
       q,
@@ -127,11 +164,16 @@ export function PropertyExplorer({
     dispatch(filtersChanged(next));
   }, [dispatch, searchParams, lockedListingKind]);
 
-  /* When type is omitted the listings span every property kind — leave it
-   * out of the query so the backend doesn't filter on it. */
-  const { data, isLoading, isError, isFetching } = useListPropertiesQuery(
-    type ? { ...filters, type } : filters,
-  );
+  /* Build the query the backend sees. Country is a HARD filter when
+   * present, so we only include it when the user hasn't opted into
+   * worldwide browsing for the current explorer. */
+  const queryArgs = {
+    ...filters,
+    ...(worldwide ? {} : { country: activeCountry }),
+    ...(type ? { type } : {}),
+  };
+  const { data, isLoading, isError, isFetching } =
+    useListPropertiesQuery(queryArgs);
 
   const items = data?.items ?? [];
   const meta = data?.meta;
@@ -220,7 +262,36 @@ export function PropertyExplorer({
         </div>
 
         <div className={styles.toolbarRight}>
-          {showBedsFilter ? (
+          <div className={styles.toolbarFilters}>
+            {worldwide ? (
+              /* Worldwide mode — replace the country selector with an
+               * active "Worldwide" pill that doubles as a way back to the
+               * single-country view. */
+              <button
+                type="button"
+                className={styles.worldwidePill}
+                onClick={() => setWorldwide(false)}
+                title={`Show only ${activeCountryName} listings`}
+              >
+                <span className={styles.worldwidePillIcon} aria-hidden="true">
+                  🌐
+                </span>
+                <span className={styles.worldwidePillText}>
+                  <span className={styles.worldwidePillLabel}>Country</span>
+                  <span className={styles.worldwidePillValue}>Worldwide</span>
+                </span>
+              </button>
+            ) : (
+              <CountrySelect
+                value={activeCountry}
+                onChange={(iso2) => dispatch(activeCountryChanged(iso2))}
+                variant="ghost"
+                hideLabel
+                allowedIso2={allowedCountries}
+                className={styles.countryControl}
+              />
+            )}
+            {showBedsFilter ? (
             <ListingDropdown
               label="Beds"
               value={activeBedsLabel}
@@ -300,18 +371,19 @@ export function PropertyExplorer({
             )}
           </ListingDropdown>
 
-          {filtersActive ? (
-            <button
-              type="button"
-              className={styles.clearBtn}
-              onClick={() => dispatch(filtersReset())}
-            >
-              Clear filters
-            </button>
-          ) : null}
+            {filtersActive ? (
+              <button
+                type="button"
+                className={styles.clearBtn}
+                onClick={() => dispatch(filtersReset())}
+              >
+                Clear filters
+              </button>
+            ) : null}
+          </div>
 
           <div
-            className={styles.viewToggle}
+            className={cn(styles.viewToggle, styles.toolbarView)}
             role="tablist"
             aria-label="View"
           >
@@ -373,19 +445,90 @@ export function PropertyExplorer({
       ) : null}
 
       {!isLoading && !isError && items.length === 0 ? (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>No listings match these filters.</p>
-          <p className={styles.stateMsg}>
-            Try widening your search or
-            <button
-              type="button"
-              className={styles.inlineClear}
-              onClick={() => dispatch(filtersReset())}
-            >
-              reset all filters
-            </button>
-            .
-          </p>
+        !worldwide ? (
+          /* Empty in the user's country — offer to expand search. */
+          <div className={cn(styles.state, styles.stateCountry)}>
+            <span className={styles.stateIcon} aria-hidden="true">
+              <svg viewBox="0 0 32 32" width="36" height="36">
+                <circle
+                  cx="16"
+                  cy="16"
+                  r="13"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+                <path
+                  d="M3 16h26M16 3c4 4 4 22 0 26M16 3c-4 4-4 22 0 26"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            <p className={styles.stateTitle}>
+              No listings in {activeCountryName} yet
+            </p>
+            <p className={styles.stateMsg}>
+              We don&rsquo;t have anything matching your search in{' '}
+              {activeCountryName} right now. Want to browse listings from
+              other countries?
+            </p>
+            <div className={styles.stateActions}>
+              <Button
+                type="button"
+                onClick={() => setWorldwide(true)}
+              >
+                Show listings worldwide
+              </Button>
+              {filtersActive ? (
+                <button
+                  type="button"
+                  className={styles.inlineClear}
+                  onClick={() => dispatch(filtersReset())}
+                >
+                  Or reset your filters
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          /* Worldwide is already on and there's still nothing — likely an
+           * over-narrow filter. */
+          <div className={styles.state}>
+            <p className={styles.stateTitle}>No listings match these filters.</p>
+            <p className={styles.stateMsg}>
+              Try widening your search or
+              <button
+                type="button"
+                className={styles.inlineClear}
+                onClick={() => dispatch(filtersReset())}
+              >
+                reset all filters
+              </button>
+              .
+            </p>
+          </div>
+        )
+      ) : null}
+
+      {/* When worldwide is on, drop a persistent banner above results so the
+       * user knows the country filter is currently relaxed. We don't repeat
+       * the active country here — the toolbar chip already advertises the
+       * mode and the "Show {country} only" button names it. */}
+      {worldwide && items.length > 0 ? (
+        <div className={styles.worldwideBanner} role="status">
+          <span>
+            Showing listings from <strong>every country</strong>.
+          </span>
+          <button
+            type="button"
+            className={styles.inlineClear}
+            onClick={() => setWorldwide(false)}
+          >
+            Show {activeCountryName} only
+          </button>
         </div>
       ) : null}
 

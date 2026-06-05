@@ -20,8 +20,21 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+interface HeaderAuthProps {
+  /**
+   * `menu`  — desktop default; renders an avatar trigger that pops a
+   *           dropdown with all account links + sign out.
+   * `inline` — mobile drawer; renders a flat Sign in / Sign up pair when
+   *           signed out, or a single Sign out button when signed in.
+   *           Account links (Dashboard / Profile / Saved / Admin) live
+   *           directly in the drawer above, so this variant doesn't
+   *           duplicate them.
+   */
+  variant?: 'menu' | 'inline';
+}
+
 /** Auth-aware header control: sign-in link, or a user menu with sign-out. */
-export function HeaderAuth() {
+export function HeaderAuth({ variant = 'menu' }: HeaderAuthProps = {}) {
   const user = useAppSelector(selectCurrentUser);
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -46,7 +59,21 @@ export function HeaderAuth() {
     };
   }, [open]);
 
+  const onSignOut = async () => {
+    try {
+      await logout().unwrap();
+    } catch {
+      /* logout clears local state regardless */
+    }
+    disconnectSocket();
+    setOpen(false);
+    dispatch(toastPushed('info', 'Signed out.'));
+    router.push('/');
+  };
+
   if (!user) {
+    /* Mobile drawer + desktop bar share the same guest CTAs; the only
+     * difference is layout, handled by the styles.guest container. */
     return (
       <div className={styles.guest}>
         <Link href="/sign-in" className={styles.guestLink}>
@@ -59,17 +86,21 @@ export function HeaderAuth() {
     );
   }
 
-  const onSignOut = async () => {
-    try {
-      await logout().unwrap();
-    } catch {
-      /* logout clears local state regardless */
-    }
-    disconnectSocket();
-    setOpen(false);
-    dispatch(toastPushed('info', 'Signed out.'));
-    router.push('/');
-  };
+  /* Mobile drawer: skip the floating dropdown entirely. Account links
+   * are surfaced in the drawer body above, so all we need here is a
+   * sign-out button that fits the drawer footer. */
+  if (variant === 'inline') {
+    return (
+      <button
+        type="button"
+        className={styles.inlineSignOut}
+        disabled={isLoading}
+        onClick={onSignOut}
+      >
+        {isLoading ? 'Signing out…' : 'Sign out'}
+      </button>
+    );
+  }
 
   return (
     <div ref={wrapRef} className={styles.root}>

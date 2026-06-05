@@ -156,6 +156,11 @@
 
   &:hover {
     background: var(--btn-primary-hover);
+    color: var(--btn-primary-fg);
+  }
+
+  &:focus-visible {
+    color: var(--btn-primary-fg);
   }
 }
 

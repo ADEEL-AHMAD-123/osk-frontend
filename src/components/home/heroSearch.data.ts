@@ -266,7 +266,7 @@ export const BATHS_OPTIONS = [
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Format helpers — USD + sq ft. Pure functions so they can be unit-tested.
+ * Format helpers — currency + sq ft. Pure functions so they can be unit-tested.
  * ──────────────────────────────────────────────────────────────────────── */
 
 const USD = new Intl.NumberFormat('en-US', {
@@ -288,6 +288,24 @@ export function formatUSDCompact(value: number): string {
     return `$${Number.isInteger(k) ? k : k.toFixed(1)}K`;
   }
   return USD.format(value);
+}
+
+/**
+ * Country-aware compact price label. Same scale as `formatUSDCompact` but
+ * the leading symbol comes from the active country's currency.
+ *
+ * Example: `formatPriceCompact(1500000, '€')` → `€1.5M`.
+ */
+export function formatPriceCompact(value: number, symbol = '$'): string {
+  if (value >= 1_000_000) {
+    const m = value / 1_000_000;
+    return `${symbol}${Number.isInteger(m) ? m : m.toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    const k = value / 1_000;
+    return `${symbol}${Number.isInteger(k) ? k : k.toFixed(1)}K`;
+  }
+  return `${symbol}${value.toLocaleString('en-US')}`;
 }
 
 const SQFT_FMT = new Intl.NumberFormat('en-US');

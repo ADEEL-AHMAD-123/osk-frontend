@@ -11,12 +11,39 @@ export interface SiteSettingsContact {
   addressCountry: string;
 }
 
+/**
+ * URLs for the home page "Get the OSK App" poster. All optional; when
+ * every field is empty the poster auto-hides.
+ *  - appStoreUrl   → iOS App Store badge link
+ *  - googlePlayUrl → Google Play badge link
+ *  - appQrUrl      → target the QR code resolves to (smart-link / landing)
+ */
+export interface SiteSettingsAppLinks {
+  appStoreUrl: string;
+  googlePlayUrl: string;
+  appQrUrl: string;
+}
+
+/**
+ * Marketplace geographic scope. When mode is 'restricted', country
+ * pickers across the app are filtered to `allowedCountries`, and the
+ * backend's property-list endpoint silently scopes results to that
+ * same set so even a direct API hit can't return excluded countries.
+ */
+export interface SiteSettingsGeo {
+  mode: 'all' | 'restricted';
+  /** ISO 3166-1 alpha-2, uppercase. */
+  allowedCountries: string[];
+}
+
 /** Returned by GET /settings and PATCH /admin/settings. */
 export interface SiteSettings {
   activeTheme: ThemeName;
   companyName: string;
   logoUrl: string;
   contact: SiteSettingsContact;
+  appLinks: SiteSettingsAppLinks;
+  geo: SiteSettingsGeo;
   updatedAt: string;
 }
 
@@ -25,4 +52,6 @@ export type SiteSettingsPatch = Partial<{
   companyName: string;
   logoUrl: string;
   contact: Partial<SiteSettingsContact>;
+  appLinks: Partial<SiteSettingsAppLinks>;
+  geo: Partial<SiteSettingsGeo>;
 }>;

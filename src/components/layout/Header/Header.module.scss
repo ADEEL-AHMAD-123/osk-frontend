@@ -189,6 +189,52 @@
   flex-shrink: 0;
 }
 
+/* Primary "Add property" CTA — pill with icon. Lives in .actions so it
+ * only shows on lg+ alongside the rest of the right-hand cluster. Sized
+ * to feel like an obvious action without dominating the bar. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: space('2');
+  padding: 0 space('4');
+  block-size: 38px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border: 1px solid var(--btn-primary-bg);
+  border-radius: radius('pill');
+  font-family: $font-sans;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+
+  @include focus-ring;
+
+  @include motion-safe {
+    transition:
+      background-color $transition-fast,
+      border-color $transition-fast,
+      transform $transition-fast;
+  }
+
+  &:hover {
+    background: var(--btn-primary-hover);
+    border-color: var(--btn-primary-hover);
+    transform: translateY(-1px);
+    color: var(--btn-primary-fg);
+  }
+
+  &:focus-visible {
+    color: var(--btn-primary-fg);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
 // ─── Hamburger (3 bars → X when open) ─────────────────────────────────────────
 
 .ham {
@@ -343,6 +389,39 @@
   &:hover {
     color: var(--color-primary);
     padding-inline-start: space('4');
+  }
+}
+
+/* Add-property CTA inside the mobile drawer. Visually distinct from the
+ * link list — full-width pill in the primary palette, with a generous
+ * tap target. Sits right after the nav links so it's the first thing the
+ * thumb reaches when the drawer opens. */
+.drawerCta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: space('2');
+  margin-block-start: space('4');
+  padding: space('3') space('4');
+  min-block-size: 48px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-radius: radius('lg');
+  font-family: $font-sans;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+
+  @include focus-ring;
+
+  @include motion-safe {
+    transition: background-color $transition-fast;
+  }
+
+  &:hover {
+    background: var(--btn-primary-hover);
   }
 }
 

@@ -5,6 +5,7 @@ import { baseApi } from './api/baseApi';
 import { listenerMiddleware } from './listenerMiddleware';
 import { devLogger } from './middleware/devLogger';
 import { loadSavedItems, savedPersistMiddleware } from '@/features/saved';
+import { loadActiveCountry, geoPersistMiddleware } from '@/features/geo';
 
 /**
  * Store factory. Next.js App Router needs a fresh store per request, so the
@@ -15,15 +16,21 @@ export const makeStore = () => {
   const store = configureStore({
     reducer: rootReducer,
     preloadedState: {
-      /* Hydrate persisted saved-listings on the client; SSR returns [] so
-       * the server render is deterministic, and the client store rehydrates
-       * once StoreProvider mounts. */
+      /* Hydrate persisted saved-listings + chosen country on the client;
+       * SSR returns defaults so the server render is deterministic, and
+       * the client store rehydrates once StoreProvider mounts. */
       saved: { items: loadSavedItems() },
+      geo: { activeCountry: loadActiveCountry() },
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware()
         .prepend(listenerMiddleware.middleware)
-        .concat(baseApi.middleware, devLogger, savedPersistMiddleware),
+        .concat(
+          baseApi.middleware,
+          devLogger,
+          savedPersistMiddleware,
+          geoPersistMiddleware,
+        ),
     devTools: process.env.NODE_ENV !== 'production',
   });
 

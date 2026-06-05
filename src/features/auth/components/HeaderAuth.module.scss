@@ -126,6 +126,22 @@
   @include motion-safe {
     animation: ha-in $transition-base both;
   }
+
+  /* Narrow viewports — the trigger is anywhere on the screen (mobile
+   * drawer footer, etc.) and the 260px min-width would happily run off
+   * either edge. Anchor to the viewport instead so the menu always
+   * stays fully visible. Acts as a small floating card pinned to the
+   * top-right of the screen. */
+  @media (max-width: #{breakpoint('sm') - 1px}) {
+    position: fixed;
+    inset-block-start: calc(64px + #{space('2')});
+    inset-inline-end: space('3');
+    inset-inline-start: auto;
+    min-inline-size: 0;
+    inline-size: min(20rem, calc(100vw - #{space('5')} * 2));
+    max-block-size: calc(100dvh - 64px - #{space('5')});
+    overflow-y: auto;
+  }
 }
 
 @keyframes ha-in {
@@ -245,5 +261,33 @@
   &:hover {
     background: var(--color-danger-soft);
     color: var(--color-danger);
+  }
+}
+
+/* Inline (mobile drawer) variant — no avatar, no popover. Just a full-
+ * width Sign out button styled in the danger tone so it stands out
+ * against the drawer's neutral links. */
+.inlineSignOut {
+  inline-size: 100%;
+  padding: space('3') space('4');
+  background: transparent;
+  border: 1px solid var(--color-danger);
+  border-radius: radius('md');
+  color: var(--color-danger);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast,
+    color $transition-fast;
+
+  &:hover {
+    background: var(--color-danger);
+    color: var(--text-inverse);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
   }
 }

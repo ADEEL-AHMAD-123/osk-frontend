@@ -2,10 +2,12 @@ import Link from 'next/link';
 import type { PropertySummary } from '@contracts';
 import {
   CityShowcase,
+  GetOurApp,
   Hero,
   PriceTiers,
   SellerCta,
   TrustStrip,
+  TrustedPartners,
   WhyOsk,
 } from '@/components/home';
 import { PropertyCard } from '@/components/property/PropertyCard';
@@ -54,6 +56,10 @@ export default async function HomePage() {
       <PriceTiers />
 
       <WhyOsk />
+
+      <GetOurApp />
+
+      <TrustedPartners />
 
       <SellerCta />
     </>

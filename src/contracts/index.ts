@@ -17,3 +17,5 @@ export * from './message.dto';
 export * from './review.dto';
 export * from './admin.dto';
 export * from './settings.dto';
+export * from './pricing.dto';
+export * from './payment.dto';

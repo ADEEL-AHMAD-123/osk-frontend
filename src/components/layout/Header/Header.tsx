@@ -17,8 +17,14 @@ const NAV_LINKS = [
   { href: '/new-projects',  label: 'New Projects' },
   { href: '/commercial',    label: 'Commercial' },
   { href: '/plots',         label: 'Plots & Land' },
-  { href: '/sell',          label: 'Sell' },
 ];
+
+/**
+ * Primary CTA in the header — replaces the old "Sell" nav link with an
+ * action-focused button. Unauthenticated users hit the auth wall on the
+ * new-listing route and are redirected to sign-in with a return URL.
+ */
+const ADD_PROPERTY_HREF = '/dashboard/listings/new';
 
 /**
  * Site header. Client component because the mobile drawer needs open/close
@@ -90,6 +96,10 @@ export function Header() {
         </nav>
 
         <div className={styles.actions}>
+          <Link href={ADD_PROPERTY_HREF} className={styles.cta}>
+            <PlusIcon />
+            <span>Add property</span>
+          </Link>
           <span className={styles.sep} aria-hidden="true" />
           <NotificationsBell />
           <SavedHeaderLink />
@@ -133,11 +143,39 @@ export function Header() {
             </Link>
           );
         })}
+        <Link
+          href={ADD_PROPERTY_HREF}
+          className={styles.drawerCta}
+          tabIndex={open ? 0 : -1}
+          onClick={() => setOpen(false)}
+        >
+          <PlusIcon />
+          <span>Add property</span>
+        </Link>
+        {/* Drawer footer — saved-listings shortcut + account menu. The
+         * HeaderAuth dropdown becomes a viewport-anchored bottom sheet
+         * on narrow viewports so it can't escape off-edge. Dashboard /
+         * Profile / Saved / Admin links live inside that menu — we don't
+         * repeat them as drawer entries. */}
         <div className={styles.drawerActions}>
           <SavedHeaderLink variant="inline" />
           <HeaderAuth />
         </div>
       </div>
     </header>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <path
+        d="M8 3v10M3 8h10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

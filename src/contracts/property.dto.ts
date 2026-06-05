@@ -37,6 +37,8 @@ export interface PropertySummary {
   areaSqft?: number;
   locality: string;
   city: string;
+  /** ISO 3166-1 alpha-2 country code — drives currency, dialing code, etc. */
+  country: string;
   thumbnail: string;
   isFeatured: boolean;
   location: GeoPoint;
@@ -63,6 +65,16 @@ export const propertyFiltersSchema = z.object({
   type: z.enum(PROPERTY_TYPES).optional(),
   listingKind: z.enum(LISTING_KINDS).optional(),
   city: z.string().optional(),
+  /**
+   * ISO 3166-1 alpha-2 country code. When present the backend doesn't
+   * hard-filter on it — it sorts the country's listings to the top, then
+   * surfaces the rest. Sent uppercase.
+   */
+  country: z
+    .string()
+    .length(2)
+    .transform((v) => v.toUpperCase())
+    .optional(),
   minPrice: z.coerce.number().nonnegative().optional(),
   maxPrice: z.coerce.number().nonnegative().optional(),
   bedrooms: z.coerce.number().int().min(0).optional(),
@@ -86,6 +98,12 @@ export const createPropertySchema = z.object({
   areaSqft: z.number().positive().optional(),
   locality: z.string().min(2),
   city: z.string().min(2),
+  /** ISO 3166-1 alpha-2 country code. Uppercased on send. */
+  country: z
+    .string()
+    .length(2)
+    .transform((v) => v.toUpperCase())
+    .default('US'),
   amenities: z.array(z.string()).default([]),
   location: z.object({
     type: z.literal('Point'),

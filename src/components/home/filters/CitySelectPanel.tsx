@@ -1,18 +1,34 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { US_CITIES, type USCity } from '../heroSearch.data';
+import {
+  getCitiesByCountry,
+  searchCities,
+  type CityOption,
+} from '@/lib/geoData';
 import { cn } from '@/lib/cn';
 import styles from './CitySelectPanel.module.scss';
 
 interface CitySelectPanelProps {
-  selected: USCity | null;
-  onChange: (city: USCity | null) => void;
+  /** ISO-2 country code whose cities populate the list. */
+  countryIso2: string;
+  /** Currently-selected city, or null when none. */
+  selected: CityOption | null;
+  onChange: (city: CityOption | null) => void;
   close: () => void;
 }
 
-/** Searchable + scrollable city list. Includes an "Any city" reset option. */
+/* `country-state-city` ships ~150k cities — even for one country the
+ * dataset can have thousands of entries, so we cap the list and lean on
+ * the search box to surface the right one. */
+const MAX_RESULTS = 200;
+
+/**
+ * Searchable, dynamic city list. Cities come from the geoData wrapper —
+ * no hardcoded lists — and are scoped to the active country.
+ */
 export function CitySelectPanel({
+  countryIso2,
   selected,
   onChange,
   close,
@@ -24,18 +40,20 @@ export function CitySelectPanel({
     inputRef.current?.focus();
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return US_CITIES;
-    return US_CITIES.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.state.toLowerCase().includes(q) ||
-        `${c.name}, ${c.state}`.toLowerCase().includes(q),
-    );
-  }, [query]);
+  /* Reset the search when country flips so leftover query state doesn't
+   * look like "no results" for the new dataset. */
+  useEffect(() => {
+    setQuery('');
+  }, [countryIso2]);
 
-  const onPick = (city: USCity | null) => {
+  const all = useMemo(() => getCitiesByCountry(countryIso2), [countryIso2]);
+  const filtered = useMemo<CityOption[]>(() => {
+    const q = query.trim();
+    if (!q) return all.slice(0, MAX_RESULTS);
+    return searchCities(countryIso2, q, MAX_RESULTS);
+  }, [all, countryIso2, query]);
+
+  const onPick = (city: CityOption | null) => {
     onChange(city);
     close();
   };
@@ -55,10 +73,15 @@ export function CitySelectPanel({
           ref={inputRef}
           type="search"
           className={styles.search}
-          placeholder="Search cities or states…"
+          placeholder={
+            all.length > 0
+              ? `Search ${all.length.toLocaleString('en-US')} cities…`
+              : 'No cities for this country'
+          }
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Search cities"
+          disabled={all.length === 0}
         />
       </div>
 
@@ -75,13 +98,17 @@ export function CitySelectPanel({
             <span className={styles.itemMeta}>Show results everywhere</span>
           </button>
         </li>
-        {filtered.length === 0 ? (
-          <li className={styles.empty}>No cities match “{query.trim()}”.</li>
+        {all.length === 0 ? (
+          <li className={styles.empty}>
+            We don&rsquo;t have city data for this country yet.
+          </li>
+        ) : filtered.length === 0 ? (
+          <li className={styles.empty}>No cities match &ldquo;{query.trim()}&rdquo;.</li>
         ) : (
           filtered.map((city) => {
-            const active = selected?.id === city.id;
+            const active = selected?.key === city.key;
             return (
-              <li key={city.id}>
+              <li key={city.key}>
                 <button
                   type="button"
                   className={cn(styles.item, active && styles.itemActive)}
@@ -90,7 +117,9 @@ export function CitySelectPanel({
                   aria-selected={active}
                 >
                   <span className={styles.itemName}>{city.name}</span>
-                  <span className={styles.itemMeta}>{city.state}</span>
+                  <span className={styles.itemMeta}>
+                    {city.stateCode ?? city.iso2}
+                  </span>
                 </button>
               </li>
             );

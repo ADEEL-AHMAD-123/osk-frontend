@@ -10,6 +10,8 @@ export const PROPERTY_STATUSES = [
   'draft',
   'pending-review',
   'approved',
+  /** Approved but parked until the seller completes payment. */
+  'awaiting-payment',
   'rejected',
   'published',
   'sold',

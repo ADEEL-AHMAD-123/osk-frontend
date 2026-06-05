@@ -20,6 +20,7 @@ const STATUS_LABEL: Record<PropertyStatus, string> = {
   draft: 'Draft',
   'pending-review': 'In review',
   approved: 'Approved',
+  'awaiting-payment': 'Awaiting payment',
   rejected: 'Rejected',
   published: 'Published',
   sold: 'Sold',
@@ -30,6 +31,7 @@ const STATUS_TONE: Record<PropertyStatus, 'new' | 'resale' | 'featured' | 'sold'
   draft: 'resale',
   'pending-review': 'featured',
   approved: 'new',
+  'awaiting-payment': 'featured',
   rejected: 'sold',
   published: 'new',
   sold: 'sold',
@@ -184,6 +186,13 @@ export function MyListings() {
                       >
                         Submit
                       </Button>
+                    ) : status === 'awaiting-payment' ? (
+                      <Link
+                        href={`/dashboard/listings/${p.slug}/payment`}
+                        className={styles.payLink}
+                      >
+                        Pay to publish →
+                      </Link>
                     ) : status === 'published' ? (
                       <Button
                         variant="secondary"

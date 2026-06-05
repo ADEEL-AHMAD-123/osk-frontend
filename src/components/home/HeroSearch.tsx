@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { Button } from '@/components/ui';
@@ -16,13 +16,24 @@ import {
   PRICE_PRESETS_BUY,
   PRICE_PRESETS_RENT,
   PROPERTY_CATEGORIES,
+  formatPriceCompact,
   formatSqFt,
-  formatUSDCompact,
   type ListingIntent,
   type PropertyCategory,
-  type USCity,
 } from './heroSearch.data';
-import { CityIcon, PriceIcon, RulerIcon, SearchIcon } from './HeroIcons';
+import { CityIcon, GlobeIcon, PriceIcon, RulerIcon, SearchIcon } from './HeroIcons';
+import {
+  CountrySelectPanel,
+  activeCountryChanged,
+  selectActiveCountry,
+  useAllowedCountries,
+} from '@/features/geo';
+import {
+  currencySymbolForCountry,
+  getCountry,
+  type CityOption,
+} from '@/lib/geoData';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { cn } from '@/lib/cn';
 import styles from './HeroSearch.module.scss';
 
@@ -43,7 +54,8 @@ const VISIBLE_CATEGORIES = PROPERTY_CATEGORIES.filter(
 const formSchema = z
   .object({
     intent: z.enum(['buy', 'rent', 'new-projects']),
-    cityId: z.string().nullable(),
+    country: z.string().length(2),
+    cityName: z.string().nullable(),
     location: z
       .string()
       .max(80, 'Location is too long')
@@ -95,9 +107,13 @@ const EMPTY_RANGE: RangeValue = { min: null, max: null };
 
 export function HeroSearch() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const activeCountry = useAppSelector(selectActiveCountry);
+  /* Admin-restricted country allow-list, if any. `null` = show all. */
+  const allowedCountries = useAllowedCountries();
 
   const [intent, setIntent] = useState<ListingIntent>('buy');
-  const [city, setCity] = useState<USCity | null>(null);
+  const [city, setCity] = useState<CityOption | null>(null);
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState<PropertyCategory>(
     VISIBLE_CATEGORIES[0]!,
@@ -107,11 +123,39 @@ export function HeroSearch() {
   const [area, setArea] = useState<RangeValue>(EMPTY_RANGE);
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  const cityLabel = city ? `${city.name}, ${city.state}` : 'Any city';
+  /* Whenever the user switches country, drop the city selection (it
+   * belonged to the previous country) and reset price (currency changed,
+   * so the previous numeric bounds may no longer mean what they meant). */
+  useEffect(() => {
+    setCity(null);
+    setPrice(EMPTY_RANGE);
+  }, [activeCountry]);
+
+  const country = useMemo(
+    () => getCountry(activeCountry) ?? getCountry('US')!,
+    [activeCountry],
+  );
+  const currencySymbol = useMemo(
+    () => currencySymbolForCountry(activeCountry),
+    [activeCountry],
+  );
+
+  const cityLabel = city
+    ? city.stateCode
+      ? `${city.name}, ${city.stateCode}`
+      : city.name
+    : 'Any city';
+
+  const countryLabel = `${country.flag ?? ''} ${country.name}`.trim();
 
   const priceLabel = useMemo(
-    () => formatRangeLabel(price, formatUSDCompact, 'Any price'),
-    [price],
+    () =>
+      formatRangeLabel(
+        price,
+        (v) => formatPriceCompact(v, currencySymbol),
+        'Any price',
+      ),
+    [price, currencySymbol],
   );
   const areaLabel = useMemo(
     () => formatRangeLabel(area, formatSqFt, 'Any size'),
@@ -145,7 +189,8 @@ export function HeroSearch() {
 
     const parsed = formSchema.safeParse({
       intent,
-      cityId: city?.id ?? null,
+      country: activeCountry,
+      cityName: city?.name ?? null,
       location,
       categoryId: category.id,
       subcategoryIds: Array.from(picked),
@@ -172,7 +217,8 @@ export function HeroSearch() {
       LISTING_INTENTS.find((i) => i.id === intent)?.route ?? '/buy';
     const params = new URLSearchParams();
     params.set('intent', intent);
-    if (parsed.data.cityId) params.set('city', parsed.data.cityId);
+    params.set('country', parsed.data.country);
+    if (parsed.data.cityName) params.set('city', parsed.data.cityName);
     if (parsed.data.location) params.set('q', parsed.data.location);
     params.set('category', parsed.data.categoryId);
     if (parsed.data.subcategoryIds.length > 0) {
@@ -210,8 +256,27 @@ export function HeroSearch() {
       </div>
 
       <div className={styles.card}>
-        {/* Row 1 — City + Location + Search */}
+        {/* Row 1 — Country + City + Location + Search */}
         <div className={styles.row1}>
+          <div className={styles.row1Cell}>
+            <FilterDropdown
+              label="Country"
+              value={countryLabel}
+              active={activeCountry !== 'US'}
+              icon={<GlobeIcon />}
+              panelWidth="22rem"
+            >
+              {(close) => (
+                <CountrySelectPanel
+                  selected={activeCountry}
+                  onChange={(iso2) => dispatch(activeCountryChanged(iso2))}
+                  allowedIso2={allowedCountries}
+                  close={close}
+                />
+              )}
+            </FilterDropdown>
+          </div>
+
           <div className={styles.row1Cell}>
             <FilterDropdown
               label="City"
@@ -221,6 +286,7 @@ export function HeroSearch() {
             >
               {(close) => (
                 <CitySelectPanel
+                  countryIso2={activeCountry}
                   selected={city}
                   onChange={setCity}
                   close={close}
@@ -311,7 +377,7 @@ export function HeroSearch() {
                     minLabel="Min"
                     maxLabel="Max"
                     presets={pricePresets}
-                    prefix="$"
+                    prefix={currencySymbol}
                     value={price}
                     onChange={setPrice}
                     close={close}

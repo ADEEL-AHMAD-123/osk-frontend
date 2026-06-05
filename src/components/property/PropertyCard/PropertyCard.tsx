@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui';
 import { ContactChannels } from '@/components/property/ContactChannels';
 import { SaveButton } from '@/features/saved';
 import { formatArea, formatPrice } from '@/lib/format';
+import { getCountry } from '@/lib/geoData';
 import styles from './PropertyCard.module.scss';
 
 /* Force-enable every channel until per-owner admin toggles ship — keeps
@@ -26,6 +27,11 @@ export interface PropertyCardProps {
 export function PropertyCard({ property, priority = false }: PropertyCardProps) {
   const href = `/property/${property.slug}`;
   const area = formatArea(property.areaSqft);
+  /* Resolve the full country name from the ISO-2 stored on the listing.
+   * Falls back to the raw code if the dataset doesn't know about it. */
+  const country = getCountry(property.country);
+  const countryLabel = country?.name ?? property.country;
+  const countryFlag = country?.flag;
 
   return (
     <article className={styles.card}>
@@ -61,7 +67,17 @@ export function PropertyCard({ property, priority = false }: PropertyCardProps) 
           <Link href={href}>{property.title}</Link>
         </h3>
         <p className={styles.location}>
-          {property.locality}, {property.city}
+          <span className={styles.locationLine}>
+            {property.locality}, {property.city}
+          </span>
+          <span className={styles.country} title={countryLabel}>
+            {countryFlag ? (
+              <span className={styles.countryFlag} aria-hidden="true">
+                {countryFlag}
+              </span>
+            ) : null}
+            <span className={styles.countryName}>{countryLabel}</span>
+          </span>
         </p>
 
         <ul className={styles.specs}>

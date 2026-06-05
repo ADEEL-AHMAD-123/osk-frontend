@@ -12,6 +12,7 @@ import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { useAppDispatch } from '@/store/hooks';
 import { toastPushed } from '@/features/ui';
 import { cn } from '@/lib/cn';
+import { GeoScopeManager } from './GeoScopeManager';
 import styles from './SettingsManager.module.scss';
 
 const THEME_LABELS: Record<ThemeName, { label: string; tagline: string }> = {
@@ -34,6 +35,9 @@ interface FormState {
   addressRegion: string;
   addressPostalCode: string;
   addressCountry: string;
+  appStoreUrl: string;
+  googlePlayUrl: string;
+  appQrUrl: string;
 }
 
 function fromSettings(s: SiteSettings): FormState {
@@ -49,6 +53,9 @@ function fromSettings(s: SiteSettings): FormState {
     addressRegion: s.contact.addressRegion,
     addressPostalCode: s.contact.addressPostalCode,
     addressCountry: s.contact.addressCountry,
+    appStoreUrl: s.appLinks?.appStoreUrl ?? '',
+    googlePlayUrl: s.appLinks?.googlePlayUrl ?? '',
+    appQrUrl: s.appLinks?.appQrUrl ?? '',
   };
 }
 
@@ -90,6 +97,11 @@ export function SettingsManager() {
           addressRegion: form.addressRegion,
           addressPostalCode: form.addressPostalCode,
           addressCountry: form.addressCountry,
+        },
+        appLinks: {
+          appStoreUrl: form.appStoreUrl.trim(),
+          googlePlayUrl: form.googlePlayUrl.trim(),
+          appQrUrl: form.appQrUrl.trim(),
         },
       }).unwrap();
       dispatch(toastPushed('success', 'Settings saved — site updated.'));
@@ -282,12 +294,54 @@ export function SettingsManager() {
           />
         </div>
 
+        {/* ── mobile app ───────────────────────────────────────────────── */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Mobile app</h2>
+          <p className={styles.sectionHint}>
+            Drives the &ldquo;Get the OSK App&rdquo; poster on the home page.
+            Each URL is optional — when every field is empty the poster
+            stays hidden. The QR resolves to your <em>App QR URL</em> (a
+            smart-link page that detects the visitor&rsquo;s OS works best),
+            or falls back to whichever store URL you&rsquo;ve filled in.
+          </p>
+          <TextField
+            label="App Store URL"
+            type="url"
+            value={form.appStoreUrl}
+            onChange={(e) => setField('appStoreUrl', e.target.value)}
+            placeholder="https://apps.apple.com/app/idXXXXXXXXX"
+            hint="iOS App Store listing. Leave blank to hide the App Store badge."
+          />
+          <TextField
+            label="Google Play URL"
+            type="url"
+            value={form.googlePlayUrl}
+            onChange={(e) => setField('googlePlayUrl', e.target.value)}
+            placeholder="https://play.google.com/store/apps/details?id=com.osk"
+            hint="Google Play listing. Leave blank to hide the Play Store badge."
+          />
+          <TextField
+            label="App QR URL"
+            type="url"
+            value={form.appQrUrl}
+            onChange={(e) => setField('appQrUrl', e.target.value)}
+            placeholder="https://osk.app/get"
+            hint="Where the QR code points. Leave blank to hide the QR — we'll use one of the store URLs above as the QR target instead."
+          />
+        </div>
+
         <div className={styles.actions}>
           <Button type="submit" size="lg" disabled={saving}>
             {saving ? 'Saving…' : 'Save settings'}
           </Button>
         </div>
       </form>
+
+      {/* Country scope sits outside the main form because it has its own
+       * mutation + dirty tracking. Keeping it separate also means the
+       * admin can save geo changes without re-submitting the rest of
+       * the settings form. */}
+      {data ? <GeoScopeManager geo={data.geo} /> : null}
     </section>
   );
 }

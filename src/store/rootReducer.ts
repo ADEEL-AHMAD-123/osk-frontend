@@ -4,6 +4,7 @@ import { authReducer } from '@/features/auth';
 import { uiReducer } from '@/features/ui';
 import { propertiesUiReducer } from '@/features/properties';
 import { savedReducer } from '@/features/saved';
+import { geoReducer } from '@/features/geo';
 
 /**
  * Root reducer.
@@ -19,6 +20,7 @@ export const rootReducer = combineReducers({
   ui: uiReducer,
   propertiesUi: propertiesUiReducer,
   saved: savedReducer,
+  geo: geoReducer,
 });
 
 export type RootReducerState = ReturnType<typeof rootReducer>;

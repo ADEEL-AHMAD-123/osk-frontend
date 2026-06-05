@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -17,9 +17,21 @@ import {
   useCreatePropertyMutation,
   useUpdatePropertyMutation,
 } from '@/features/properties';
-import { US_CITIES } from '@/components/home/heroSearch.data';
+import {
+  CountrySelect,
+  selectActiveCountry,
+  activeCountryChanged,
+  useAllowedCountries,
+} from '@/features/geo';
+import {
+  currencyForCountry,
+  currencySymbolForCountry,
+  findCity,
+  getCitiesByCountry,
+  getCountry,
+} from '@/lib/geoData';
 import { toastPushed } from '@/features/ui';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Button, MediaUploader, TextField } from '@/components/ui';
 import type { UploadedMedia } from '@/components/ui';
 import { resolveMediaUrl } from '@/lib/mediaUrl';
@@ -48,33 +60,27 @@ const KIND_LABEL: Record<ListingKind, string> = {
   resale: 'Resale',
 };
 
-/** Fallback coordinates (NYC) when the typed city isn't in US_CITIES. */
+/** Country centroid fallback when neither the city nor the country has coords. */
 const FALLBACK_LOCATION: [number, number] = [-74.0086, 40.7163];
 
-function resolveCoords(city: string): [number, number] {
-  const match = US_CITIES.find(
-    (c) => c.name.toLowerCase() === city.trim().toLowerCase(),
-  );
-  if (match) {
-    // Stub: US_CITIES doesn't yet carry coordinates; use representative lat/lng
-    // from a small lookup. Update when the city dataset gets geo.
-    return CITY_COORDS[match.id] ?? FALLBACK_LOCATION;
+/**
+ * Resolve [lng, lat] for a `(country, city)` pair using the bundled
+ * `country-state-city` dataset. Falls back to country centroid, then NYC.
+ */
+function resolveCoords(
+  countryIso2: string,
+  cityName: string,
+): [number, number] {
+  const cityMatch = findCity(countryIso2, cityName);
+  if (cityMatch && cityMatch.lat != null && cityMatch.lng != null) {
+    return [cityMatch.lng, cityMatch.lat];
+  }
+  const country = getCountry(countryIso2);
+  if (country && country.lat !== 0 && country.lng !== 0) {
+    return [country.lng, country.lat];
   }
   return FALLBACK_LOCATION;
 }
-
-/** Representative coordinates for the showcase cities. Other entries fall back. */
-const CITY_COORDS: Record<string, [number, number]> = {
-  'new-york-ny': [-74.0086, 40.7163],
-  'los-angeles-ca': [-118.3854, 34.1106],
-  'miami-fl': [-80.1349, 25.7825],
-  'chicago-il': [-87.6573, 41.8866],
-  'austin-tx': [-97.7195, 30.2672],
-  'san-francisco-ca': [-122.4365, 37.7918],
-  'boston-ma': [-71.0703, 42.3585],
-  'seattle-wa': [-122.3175, 47.6253],
-  'denver-co': [-105.2705, 40.015],
-};
 
 interface FormValues {
   title: string;
@@ -98,6 +104,37 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isEditMode = !!initialProperty;
   const isLoading = isEditMode ? updateState.isLoading : createState.isLoading;
+
+  /* Country is sourced from the global slice so picking a country on the
+   * hero updates the form, and vice-versa. In edit mode we initialise the
+   * picker from the existing listing's country. */
+  const globalCountry = useAppSelector(selectActiveCountry);
+  /* Honour the admin-set country allow-list, if any. */
+  const allowedCountries = useAllowedCountries();
+  const [country, setCountry] = useState<string>(
+    initialProperty?.country ?? globalCountry,
+  );
+
+  /* Keep listing-form country in sync with the global slice while
+   * we're authoring a new listing (edit mode is owner-of-its-country). */
+  useEffect(() => {
+    if (!isEditMode) setCountry(globalCountry);
+  }, [globalCountry, isEditMode]);
+
+  const setCountryAndShare = (iso2: string) => {
+    setCountry(iso2);
+    /* Bubble new-listing country up to the global slice so the rest of
+     * the app reflects the seller's intent. */
+    dispatch(activeCountryChanged(iso2));
+  };
+
+  /* Currency + cities derive from the picked country. */
+  const currencyCode = useMemo(() => currencyForCountry(country), [country]);
+  const currencySymbol = useMemo(
+    () => currencySymbolForCountry(country),
+    [country],
+  );
+  const cities = useMemo(() => getCitiesByCountry(country), [country]);
 
   /* Media is managed outside react-hook-form so the uploader can push
    * updates without going through register/setValue plumbing. */
@@ -202,14 +239,16 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
       ? 'e.g. Loading dock, Elevator, Raised flooring, 24/7 access'
       : 'e.g. Doorman, Gym, Roof terrace, Bike storage';
 
-  const priceLabel = isRental ? 'Monthly rent (USD)' : 'Price (USD)';
+  const priceLabel = isRental
+    ? `Monthly rent (${currencyCode})`
+    : `Price (${currencyCode})`;
   const pricePlaceholder = isRental
-    ? 'e.g. 4500'
+    ? `${currencySymbol}4,500`
     : isPlot
-      ? 'e.g. 489000'
+      ? `${currencySymbol}489,000`
       : isCommercial
-        ? 'e.g. 3450000'
-        : 'e.g. 875000';
+        ? `${currencySymbol}3,450,000`
+        : `${currencySymbol}875,000`;
 
   const titlePlaceholder = isPlot
     ? '12-Acre Hill Country Parcel — Dripping Springs'
@@ -247,7 +286,8 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
       type: values.type,
       listingKind: values.listingKind,
       price: Number(values.price),
-      currency: 'USD',
+      currency: currencyCode,
+      country,
       locality: values.locality.trim(),
       city: values.city.trim(),
       amenities: values.amenitiesRaw
@@ -256,7 +296,7 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
         .filter(Boolean),
       location: {
         type: 'Point',
-        coordinates: resolveCoords(values.city),
+        coordinates: resolveCoords(country, values.city),
       },
     };
     /* Only residential listings carry beds/baths — drop stale values if the
@@ -430,6 +470,12 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
         <fieldset className={styles.group}>
           <legend className={styles.groupTitle}>Location</legend>
           <div className={styles.grid}>
+            <CountrySelect
+              label="Country"
+              value={country}
+              onChange={setCountryAndShare}
+              allowedIso2={allowedCountries}
+            />
             <TextField
               label="Locality / neighborhood"
               placeholder={localityPlaceholder}
@@ -439,15 +485,20 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
             <label className={styles.field}>
               <span className={styles.fieldLabel}>City</span>
               <input
-                list="city-list"
+                list="osk-city-list"
                 className={styles.input}
-                placeholder="Start typing — e.g. New York"
+                placeholder={
+                  cities.length > 0
+                    ? `Start typing — e.g. ${cities[0]?.name ?? 'a city'}`
+                    : 'Type the city name'
+                }
                 {...register('city', { required: true, minLength: 2 })}
               />
-              <datalist id="city-list">
-                {US_CITIES.map((c) => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}, {c.state}
+              <datalist id="osk-city-list">
+                {/* Cap to a reasonable count — the datalist is a hint, not a hard list. */}
+                {cities.slice(0, 500).map((c) => (
+                  <option key={c.key} value={c.name}>
+                    {c.stateCode ? `${c.name}, ${c.stateCode}` : c.name}
                   </option>
                 ))}
               </datalist>
@@ -455,7 +506,8 @@ export function NewListingForm({ initialProperty }: NewListingFormProps = {}) {
                 <span className={styles.fieldError}>Required.</span>
               ) : (
                 <span className={styles.fieldHint}>
-                  We&rsquo;ll pin the listing to this city on the map.
+                  We&rsquo;ll pin the listing to this city on the map. Pricing
+                  is in {currencyCode}.
                 </span>
               )}
             </label>

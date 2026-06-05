@@ -18,6 +18,9 @@ export const API_TAGS = [
   'AdminOverview',
   'AuditLog',
   'SiteSettings',
+  'PricingPlan',
+  'PaymentSettings',
+  'Payment',
 ] as const;
 
 export type ApiTag = (typeof API_TAGS)[number];

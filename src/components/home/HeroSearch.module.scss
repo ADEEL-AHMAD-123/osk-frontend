@@ -76,7 +76,7 @@
   overflow: visible;
 }
 
-/* ─── row 1: city + location + search ────────────────────────────────── */
+/* ─── row 1: country + city + location + search ───────────────────────── */
 .row1 {
   display: grid;
   grid-template-columns: 1fr;
@@ -84,7 +84,13 @@
   border-end-end-radius: 0;
 
   @include respond('md') {
-    grid-template-columns: minmax(11rem, 1fr) 1.8fr auto;
+    /* Country + City + Location + Submit — tighter columns than the
+     * old 3-cell layout but the Location field still gets the most room. */
+    grid-template-columns:
+      minmax(10rem, 0.95fr)
+      minmax(10rem, 0.95fr)
+      minmax(12rem, 1.6fr)
+      auto;
   }
 }
 

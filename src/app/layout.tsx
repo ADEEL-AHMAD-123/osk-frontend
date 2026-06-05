@@ -76,7 +76,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <StoreProvider>
           <ThemeProvider serverTheme={activeTheme}>
             <AuthBootstrap />
