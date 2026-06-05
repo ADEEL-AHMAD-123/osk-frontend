@@ -6,8 +6,7 @@ import styles from '../_marketing.module.scss';
 
 export const metadata: Metadata = {
   title: 'Find an Agent',
-  description:
-    'Work with verified OSK real-estate agents in your market.',
+  description: 'Work with verified OSK real-estate agents in your market.',
 };
 
 const STATS = [
@@ -49,8 +48,8 @@ export default function AgentsPage() {
           The right <em>agent</em>, in your market.
         </h1>
         <p className={styles.lede}>
-          Browse verified OSK agents by city and specialty — or post your needs
-          and we’ll match you to two or three people worth talking to.
+          Browse verified OSK agents by city and specialty — or post your needs and we’ll
+          match you to two or three people worth talking to.
         </p>
       </header>
 
@@ -99,8 +98,8 @@ export default function AgentsPage() {
           <div className={styles.ctaCopy}>
             <h2 className={styles.ctaTitle}>Are you an agent?</h2>
             <p className={styles.ctaSub}>
-              Join the OSK network — verified profiles, premium listings, and a
-              steady stream of qualified leads.
+              Join the OSK network — verified profiles, standout listings, and a steady
+              stream of qualified leads.
             </p>
           </div>
           <div className={styles.ctaActions}>

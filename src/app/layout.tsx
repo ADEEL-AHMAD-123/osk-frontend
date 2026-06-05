@@ -33,11 +33,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'OSK — Premium Real Estate',
+    default: 'OSK — Real Estate',
     template: '%s · OSK',
   },
-  description:
-    'Discover premium homes, plots, commercial space and rentals with OSK.',
+  description: 'Discover homes, plots, commercial space and rentals with OSK.',
   openGraph: {
     type: 'website',
     siteName: 'OSK',
@@ -46,11 +45,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   /* Resolve the active theme server-side so first paint has no flash. The
    * settings endpoint is public; if the backend is unreachable we fall
    * back to the env default. */

@@ -23,7 +23,7 @@ const TIERS: Tier[] = [
   },
   {
     href: '/buy?priceMin=1000000&priceMax=3000000',
-    label: 'Premium',
+    label: 'Executive',
     range: '$1M – $3M',
     blurb: 'High-end homes and city lofts.',
   },

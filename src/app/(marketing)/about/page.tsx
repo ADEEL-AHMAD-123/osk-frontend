@@ -5,8 +5,7 @@ import styles from '../_marketing.module.scss';
 
 export const metadata: Metadata = {
   title: 'About OSK',
-  description:
-    'Premium real estate, curated. The story, values, and people behind OSK.',
+  description: 'Real estate, curated. The story, values, and people behind OSK.',
 };
 
 const VALUES = [
@@ -48,9 +47,9 @@ export default function AboutPage() {
           A better way to <em>find a home.</em>
         </h1>
         <p className={styles.lede}>
-          OSK is a curated real-estate platform for the U.S. We bring together
-          owners, verified agents and serious buyers — and we keep the
-          experience quiet, honest, and direct.
+          OSK is a curated real-estate platform for the U.S. We bring together owners,
+          verified agents and serious buyers — and we keep the experience quiet, honest,
+          and direct.
         </p>
       </header>
 
@@ -93,8 +92,7 @@ export default function AboutPage() {
           <div className={styles.ctaCopy}>
             <h2 className={styles.ctaTitle}>List a property with OSK</h2>
             <p className={styles.ctaSub}>
-              Reach serious buyers — and stay in control of how people contact
-              you.
+              Reach serious buyers — and stay in control of how people contact you.
             </p>
           </div>
           <div className={styles.ctaActions}>

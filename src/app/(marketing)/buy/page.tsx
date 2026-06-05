@@ -4,7 +4,7 @@ import { PropertyExplorer } from '@/features/properties';
 
 export const metadata: Metadata = {
   title: 'Homes for Sale',
-  description: 'Browse premium homes for sale — new projects and resale.',
+  description: 'Browse homes for sale — new projects and resale.',
 };
 
 export default function BuyPage() {

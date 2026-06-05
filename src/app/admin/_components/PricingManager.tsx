@@ -20,10 +20,7 @@ import { CountrySelect } from '@/features/geo';
 import { toastPushed } from '@/features/ui';
 import { useAppDispatch } from '@/store/hooks';
 import { Button, TextField } from '@/components/ui';
-import {
-  currencyForCountry,
-  getCountry,
-} from '@/lib/geoData';
+import { currencyForCountry, getCountry } from '@/lib/geoData';
 import { cn } from '@/lib/cn';
 import styles from './PricingManager.module.scss';
 
@@ -45,14 +42,11 @@ type Draft = typeof BLANK_PLAN;
 /** Pricing admin — global toggle + provider config + plans matrix. */
 export function PricingManager() {
   const dispatch = useAppDispatch();
-  const { data: settings, isLoading: settingsLoading } =
-    useGetPaymentSettingsQuery();
-  const { data: plans, isLoading: plansLoading, isError } =
-    useListPricingPlansQuery();
+  const { data: settings, isLoading: settingsLoading } = useGetPaymentSettingsQuery();
+  const { data: plans, isLoading: plansLoading, isError } = useListPricingPlansQuery();
   const [updateSettings, { isLoading: savingSettings }] =
     useUpdatePaymentSettingsMutation();
-  const [createPlan, { isLoading: creating }] =
-    useCreatePricingPlanMutation();
+  const [createPlan, { isLoading: creating }] = useCreatePricingPlanMutation();
   const [updatePlan] = useUpdatePricingPlanMutation();
   const [deletePlan] = useDeletePricingPlanMutation();
 
@@ -132,10 +126,10 @@ export function PricingManager() {
         <span className={styles.eyebrow}>Admin · Pricing</span>
         <h1 className={styles.title}>Pricing &amp; payments</h1>
         <p className={styles.sub}>
-          Toggle paid listings on or off, pick which payment methods sellers
-          can use, and write the pricing matrix. Plans match by axis — a plan
-          with a specific value wins over a wildcard, so you can keep a broad
-          fallback and stack precise rules on top.
+          Toggle paid listings on or off, pick which payment methods sellers can use, and
+          write the pricing matrix. Plans match by axis — a plan with a specific value
+          wins over a wildcard, so you can keep a broad fallback and stack precise rules
+          on top.
         </p>
       </header>
 
@@ -144,8 +138,8 @@ export function PricingManager() {
         <header className={styles.cardHead}>
           <h2 className={styles.cardTitle}>Global payments</h2>
           <p className={styles.cardSub}>
-            Master switch. Off means every approval publishes for free,
-            regardless of any plan price.
+            Master switch. Off means every approval publishes for free, regardless of any
+            plan price.
           </p>
         </header>
         {settingsLoading ? (
@@ -157,9 +151,7 @@ export function PricingManager() {
                 type="checkbox"
                 checked={settings.paymentsEnabled}
                 disabled={savingSettings}
-                onChange={(e) =>
-                  setSetting('paymentsEnabled', e.currentTarget.checked)
-                }
+                onChange={(e) => setSetting('paymentsEnabled', e.currentTarget.checked)}
               />
               <span className={styles.toggleSlider} aria-hidden="true" />
               <span className={styles.toggleLabel}>
@@ -169,9 +161,7 @@ export function PricingManager() {
             <span
               className={cn(
                 styles.statusPill,
-                settings.paymentsEnabled
-                  ? styles.statusOn
-                  : styles.statusOff,
+                settings.paymentsEnabled ? styles.statusOn : styles.statusOff,
               )}
             >
               {settings.paymentsEnabled ? 'PAID' : 'FREE'}
@@ -190,18 +180,23 @@ export function PricingManager() {
             <h2 className={styles.cardTitle}>Bank transfer instructions</h2>
             <p className={styles.cardSub}>
               Shown on the seller&apos;s checkout when they pick &ldquo;Bank
-              transfer&rdquo;. Include the IBAN/SWIFT, beneficiary, and the
-              note they should put in the reference line.
+              transfer&rdquo;. Include the IBAN/SWIFT, beneficiary, and the note they
+              should put in the reference line.
             </p>
           </header>
           <textarea
             className={styles.textarea}
             rows={6}
             defaultValue={settings.bankInstructions}
-            onBlur={(e) =>
-              setSetting('bankInstructions', e.currentTarget.value)
-            }
-            placeholder="Beneficiary: OSK Real Estate &#10;Bank: HSBC &#10;Account number: …"
+            onBlur={(e) => setSetting('bankInstructions', e.currentTarget.value)}
+            placeholder={[
+              'Beneficiary: OSK Real Estate Escrow Ltd.',
+              'Bank: North Atlantic Bank',
+              'Account number: 0012457789',
+              'IBAN: GB82NATB20481200124577',
+              'SWIFT/BIC: NATBGB2L',
+              'Reference: Use your listing title or property slug',
+            ].join('\n')}
           />
         </section>
       ) : null}
@@ -213,15 +208,11 @@ export function PricingManager() {
             <h2 className={styles.cardTitle}>Pricing plans</h2>
             <p className={styles.cardSub}>
               Each plan declares the price for one slice of inventory. Use{' '}
-              <code className={styles.code}>*</code> as a wildcard to match
-              any value on an axis. Higher <em>priority</em> wins ties.
+              <code className={styles.code}>*</code> as a wildcard to match any value on
+              an axis. Higher <em>priority</em> wins ties.
             </p>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setShowForm((v) => !v)}
-          >
+          <Button type="button" size="sm" onClick={() => setShowForm((v) => !v)}>
             {showForm ? 'Close' : 'Add plan'}
           </Button>
         </header>
@@ -232,9 +223,7 @@ export function PricingManager() {
               <TextField
                 label="Name"
                 value={draft.name}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, name: e.target.value }))
-                }
+                onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
                 placeholder="Standard Home — US"
               />
               <label className={styles.field}>
@@ -354,11 +343,7 @@ export function PricingManager() {
               </label>
             </div>
             <div className={styles.formActions}>
-              <Button
-                type="button"
-                onClick={onSubmitDraft}
-                disabled={creating}
-              >
+              <Button type="button" onClick={onSubmitDraft} disabled={creating}>
                 {creating ? 'Saving…' : 'Create plan'}
               </Button>
               <button
@@ -381,8 +366,7 @@ export function PricingManager() {
           <p className={styles.muted}>Couldn&rsquo;t load plans.</p>
         ) : sortedPlans.length === 0 ? (
           <p className={styles.muted}>
-            No plans yet — add one above to start charging for that slice of
-            inventory.
+            No plans yet — add one above to start charging for that slice of inventory.
           </p>
         ) : (
           <div className={styles.tableWrap}>
@@ -415,8 +399,7 @@ export function PricingManager() {
                       <td>{plan.featured ? 'Featured' : 'Base'}</td>
                       <td>
                         <strong>
-                          {plan.price.toLocaleString('en-US')}{' '}
-                          {plan.currency}
+                          {plan.price.toLocaleString('en-US')} {plan.currency}
                         </strong>
                       </td>
                       <td>{plan.priority}</td>

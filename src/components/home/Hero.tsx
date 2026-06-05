@@ -2,7 +2,7 @@ import { HeroSearch } from './HeroSearch';
 import styles from './Hero.module.scss';
 
 /**
- * Premium centered hero. Server Component — the only client island is
+ * Centered hero. Server Component — the only client island is
  * HeroSearch. Every color/shadow/border resolves to a theme token, so the
  * whole section re-themes across luxe-light / luxe-dark / emerald /
  * sandstone with no code change.

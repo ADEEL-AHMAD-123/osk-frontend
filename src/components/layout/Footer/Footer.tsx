@@ -70,9 +70,7 @@ export async function Footer() {
           ) : (
             <span className={styles.brand}>{companyName}</span>
           )}
-          <p className={styles.tagline}>
-            Premium homes, land and commercial space — curated.
-          </p>
+          <p className={styles.tagline}>Homes, land and commercial space — curated.</p>
           <address className={styles.contact}>
             {lines.map((line) => (
               <span key={line} className={styles.contactLine}>

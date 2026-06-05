@@ -63,7 +63,7 @@ const FEATURES = [
   'No listing fees up to your first sale',
   'Real-time inquiry notifications via email + push',
   'Owner-controlled contact channels per listing',
-  'Premium gallery + map placement, included',
+  'Enhanced gallery + map placement, included',
   'Lead funnel + response metrics in the dashboard',
   'Spam protection, phone masking, CAPTCHA built-in',
 ];
@@ -85,8 +85,8 @@ export default function SellPage() {
           List your property <em>with OSK.</em>
         </h1>
         <p className={styles.sub}>
-          Reach serious buyers with a premium listing — and stay in control of
-          how people contact you.
+          Reach serious buyers with a standout listing — and stay in control of how people
+          contact you.
         </p>
         <div className={styles.headActions}>
           <Link href="/dashboard/listings/new">
@@ -143,8 +143,8 @@ export default function SellPage() {
         <div className={styles.ctaCopy}>
           <h2 className={styles.ctaTitle}>Ready when you are.</h2>
           <p className={styles.ctaSub}>
-            Drafts are saved automatically. You can publish whenever your
-            listing is ready.
+            Drafts are saved automatically. You can publish whenever your listing is
+            ready.
           </p>
         </div>
         <div className={styles.ctaActions}>
