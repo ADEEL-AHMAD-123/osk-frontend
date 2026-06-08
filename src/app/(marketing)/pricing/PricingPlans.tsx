@@ -11,6 +11,7 @@ import {
   type SubscriptionPlan,
 } from '@contracts';
 import {
+  useGetMySubscriptionQuery,
   useListSubscriptionPlansQuery,
   useSubscribeMutation,
 } from '@/features/subscriptions';
@@ -56,6 +57,12 @@ export function PricingPlans() {
 
   const { data: plans, isLoading } = useListSubscriptionPlansQuery();
   const { data: paymentSettings } = useGetPaymentSettingsQuery();
+  /* Only meaningful when the user is signed in — useGetMySubscription
+   *  is auth-gated. Pre-auth the query falls back to no data and the
+   *  "Current plan" badge simply doesn't render. */
+  const { data: currentSubscription } = useGetMySubscriptionQuery(undefined, {
+    skip: !user,
+  });
   const [subscribe, { isLoading: submitting }] = useSubscribeMutation();
 
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
@@ -71,10 +78,45 @@ export function PricingPlans() {
     );
   }
 
+  const isCurrentActive = (planId: string) =>
+    !!currentSubscription &&
+    currentSubscription.status === 'active' &&
+    currentSubscription.planId === planId;
+
+  const isCurrentPending = (planId: string) =>
+    !!currentSubscription &&
+    currentSubscription.status === 'pending-payment' &&
+    currentSubscription.planId === planId;
+
   const onPick = async (plan: SubscriptionPlan) => {
     if (!user) {
       router.push(`/sign-in?returnTo=/pricing`);
       return;
+    }
+
+    /* Already on this plan and active — nothing to do. The card's CTA
+     * is normally disabled in this state, so this branch only fires
+     * if a user somehow re-triggers the click. */
+    if (isCurrentActive(plan.id)) {
+      router.push('/dashboard/subscription');
+      return;
+    }
+
+    /* Switching from a current active plan to a different one — ask
+     * before doing it. The backend overwrites the existing row, so
+     * users on Gold who pick Premium will effectively be moved as
+     * soon as the new payment clears. */
+    if (
+      currentSubscription &&
+      currentSubscription.status === 'active' &&
+      currentSubscription.planId !== plan.id
+    ) {
+      const ok = confirm(
+        `You're currently on ${
+          currentSubscription.planSlug
+        }. Switching plans will replace it once payment clears. Continue?`,
+      );
+      if (!ok) return;
     }
 
     const isFree = plan.prices.length === 0 || plan.prices.every((p) => p.amount === 0);
@@ -132,6 +174,8 @@ export function PricingPlans() {
             localCurrency={localCurrency}
             localSymbol={localSymbol}
             busy={busyOption === `free-${plan.id}`}
+            isCurrentActive={isCurrentActive(plan.id)}
+            isCurrentPending={isCurrentPending(plan.id)}
             onPick={() => onPick(plan)}
           />
         ))}
@@ -159,10 +203,25 @@ interface PlanCardProps {
   localCurrency: string;
   localSymbol: string;
   busy: boolean;
+  /** True when the user is already active on THIS plan. CTA flips to
+   *  a disabled "Current plan" button and the card gets a "Current"
+   *  ribbon. */
+  isCurrentActive: boolean;
+  /** True when the user has a pending-payment subscription on THIS
+   *  plan. CTA becomes "Finish payment" so the seller can resume. */
+  isCurrentPending: boolean;
   onPick: () => void;
 }
 
-function PlanCard({ plan, localCurrency, localSymbol, busy, onPick }: PlanCardProps) {
+function PlanCard({
+  plan,
+  localCurrency,
+  localSymbol,
+  busy,
+  isCurrentActive,
+  isCurrentPending,
+  onPick,
+}: PlanCardProps) {
   const isFree = plan.prices.length === 0 || plan.prices.every((p) => p.amount === 0);
   /* The canonical "billed at" anchor: prefer USD as the universal
    * baseline, otherwise the plan's first price. */
@@ -177,8 +236,18 @@ function PlanCard({ plan, localCurrency, localSymbol, busy, onPick }: PlanCardPr
     !!billingPrice && billingPrice.currency.toUpperCase() !== localCurrency.toUpperCase();
 
   return (
-    <article className={cn(styles.card, plan.highlight && styles.cardHighlight)}>
-      {plan.highlight ? <span className={styles.popular}>Most popular</span> : null}
+    <article
+      className={cn(
+        styles.card,
+        plan.highlight && styles.cardHighlight,
+        isCurrentActive && styles.cardCurrent,
+      )}
+    >
+      {isCurrentActive ? (
+        <span className={cn(styles.popular, styles.popularCurrent)}>Current plan</span>
+      ) : plan.highlight ? (
+        <span className={styles.popular}>Most popular</span>
+      ) : null}
       <header className={styles.cardHead}>
         <h2 className={styles.name}>{plan.name}</h2>
         {plan.tagline ? <p className={styles.tagline}>{plan.tagline}</p> : null}
@@ -221,11 +290,20 @@ function PlanCard({ plan, localCurrency, localSymbol, busy, onPick }: PlanCardPr
       <Button
         type="button"
         size="lg"
-        disabled={busy}
+        variant={isCurrentActive ? 'secondary' : 'primary'}
+        disabled={busy || isCurrentActive}
         onClick={onPick}
         className={styles.cta}
       >
-        {busy ? 'Starting…' : isFree ? 'Get started' : `Choose ${plan.name}`}
+        {isCurrentActive
+          ? 'Current plan'
+          : isCurrentPending
+            ? 'Finish payment'
+            : busy
+              ? 'Starting…'
+              : isFree
+                ? 'Get started'
+                : `Choose ${plan.name}`}
       </Button>
     </article>
   );
