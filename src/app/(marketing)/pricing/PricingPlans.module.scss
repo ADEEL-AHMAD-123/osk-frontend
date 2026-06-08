@@ -1,5 +1,29 @@
 @use 'abstracts' as *;
 
+.currencyBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space('3');
+  margin-block-end: space('4');
+}
+
+.currencyLabel {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.currencySelect {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: radius('md');
+  padding: 0.5rem 0.75rem;
+  min-inline-size: 6.5rem;
+  font-size: 0.875rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -34,7 +58,9 @@
 .cardHighlight {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+  box-shadow:
+    0 0 0 1px var(--color-primary),
+    var(--shadow-md);
 }
 
 .popular {
@@ -117,6 +143,18 @@
   color: var(--text-primary);
 }
 
+.featureIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 .featureOn .featureIcon {
   color: var(--color-success);
   background: var(--color-success-soft);
@@ -129,18 +167,6 @@
     color: var(--color-danger);
     background: var(--color-danger-soft);
   }
-}
-
-.featureIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: 22px;
-  block-size: 22px;
-  border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 700;
-  flex-shrink: 0;
 }
 
 .featureLabel {

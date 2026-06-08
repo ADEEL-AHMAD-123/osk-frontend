@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   PROVIDER_KEYS,
@@ -16,8 +16,7 @@ import {
 import { selectActiveCountry } from '@/features/geo';
 import { selectCurrentUser } from '@/features/auth';
 import { toastPushed } from '@/features/ui';
-import { useAppSelector } from '@/store/hooks';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useGetPaymentSettingsQuery } from '@/features/pricing';
 import { currencyForCountry, currencySymbolForCountry } from '@/lib/geoData';
 import { Button } from '@/components/ui';
@@ -44,6 +43,32 @@ export function PricingPlans() {
   const { data: paymentSettings } = useGetPaymentSettingsQuery();
   const [subscribe, { isLoading: submitting }] = useSubscribeMutation();
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('');
+
+  const availableCurrencies = useMemo(() => {
+    if (!plans) return [] as string[];
+    const codes = new Set<string>();
+    for (const plan of plans) {
+      for (const p of plan.prices) codes.add(p.currency.toUpperCase());
+    }
+    return Array.from(codes).sort();
+  }, [plans]);
+
+  const preferredCurrency = useMemo(
+    () =>
+      availableCurrencies.includes(currency)
+        ? currency
+        : (availableCurrencies[0] ?? currency),
+    [availableCurrencies, currency],
+  );
+
+  useEffect(() => {
+    if (!selectedCurrency || !availableCurrencies.includes(selectedCurrency)) {
+      setSelectedCurrency(preferredCurrency);
+    }
+  }, [availableCurrencies, preferredCurrency, selectedCurrency]);
+
+  const checkoutCurrencyPreference = selectedCurrency || preferredCurrency;
 
   const onPick = async (plan: SubscriptionPlan) => {
     if (!user) {
@@ -51,9 +76,9 @@ export function PricingPlans() {
       return;
     }
 
-    const price = pickPrice(plan.prices, currency);
+    const price = pickPrice(plan.prices, checkoutCurrencyPreference);
     const effectivePrice = price ?? plan.prices[0];
-    const checkoutCurrency = effectivePrice?.currency ?? currency;
+    const checkoutCurrency = effectivePrice?.currency ?? checkoutCurrencyPreference;
     const isFree = !effectivePrice || effectivePrice.amount === 0;
 
     /* Free plans: subscribe and route to dashboard. */
@@ -157,67 +182,92 @@ export function PricingPlans() {
   }
 
   return (
-    <div className={styles.grid}>
-      {plans.map((plan) => {
-        const price = pickPrice(plan.prices, currency);
-        const displayAmount = price?.amount ?? plan.prices[0]?.amount ?? 0;
-        const displayCurrency = price?.currency ?? plan.prices[0]?.currency ?? 'USD';
-        const displaySymbol = displayCurrency === currency ? symbol : displayCurrency;
-        const isFree = displayAmount === 0;
-        return (
-          <article
-            key={plan.id}
-            className={cn(styles.card, plan.highlight && styles.cardHighlight)}
+    <>
+      {availableCurrencies.length > 1 ? (
+        <div className={styles.currencyBar}>
+          <label htmlFor="pricing-currency" className={styles.currencyLabel}>
+            Billing currency
+          </label>
+          <select
+            id="pricing-currency"
+            value={checkoutCurrencyPreference}
+            onChange={(e) => setSelectedCurrency(e.currentTarget.value.toUpperCase())}
+            className={styles.currencySelect}
           >
-            {plan.highlight ? <span className={styles.popular}>Most popular</span> : null}
-            <header className={styles.cardHead}>
-              <h2 className={styles.name}>{plan.name}</h2>
-              {plan.tagline ? <p className={styles.tagline}>{plan.tagline}</p> : null}
-              <div className={styles.priceBlock}>
-                {isFree ? (
-                  <span className={styles.priceFree}>Free</span>
-                ) : (
-                  <>
-                    <span className={styles.priceAmount}>
-                      {displaySymbol}
-                      {displayAmount.toLocaleString('en-US')}
-                    </span>
-                    <span className={styles.priceCadence}>
-                      /
-                      {plan.interval === 'year'
-                        ? 'yr'
-                        : plan.interval === 'month'
-                          ? 'mo'
-                          : 'once'}
-                    </span>
-                  </>
-                )}
-              </div>
-            </header>
+            {availableCurrencies.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
-            <ul className={styles.features}>
-              {plan.features.map((feature, i) => (
-                <FeatureRow key={i} feature={feature} />
-              ))}
-            </ul>
-
-            <Button
-              type="button"
-              size="lg"
-              disabled={submitting || busyPlan === plan.id}
-              onClick={() => onPick(plan)}
-              className={styles.cta}
+      <div className={styles.grid}>
+        {plans.map((plan) => {
+          const price = pickPrice(plan.prices, checkoutCurrencyPreference);
+          const displayAmount = price?.amount ?? plan.prices[0]?.amount ?? 0;
+          const displayCurrency = price?.currency ?? plan.prices[0]?.currency ?? 'USD';
+          const displaySymbol =
+            displayCurrency === currency ? symbol : symbolForCurrency(displayCurrency);
+          const isFree = displayAmount === 0;
+          return (
+            <article
+              key={plan.id}
+              className={cn(styles.card, plan.highlight && styles.cardHighlight)}
             >
-              {busyPlan === plan.id
-                ? 'Starting…'
-                : isFree
-                  ? 'Get started'
-                  : `Choose ${plan.name}`}
-            </Button>
-          </article>
-        );
-      })}
-    </div>
+              {plan.highlight ? (
+                <span className={styles.popular}>Most popular</span>
+              ) : null}
+              <header className={styles.cardHead}>
+                <h2 className={styles.name}>{plan.name}</h2>
+                {plan.tagline ? <p className={styles.tagline}>{plan.tagline}</p> : null}
+                <div className={styles.priceBlock}>
+                  {isFree ? (
+                    <span className={styles.priceFree}>Free</span>
+                  ) : (
+                    <>
+                      <span className={styles.priceAmount}>
+                        {displaySymbol}
+                        {displayAmount.toLocaleString('en-US')}
+                      </span>
+                      <span className={styles.priceCadence}>
+                        /
+                        {plan.interval === 'year'
+                          ? 'yr'
+                          : plan.interval === 'month'
+                            ? 'mo'
+                            : 'once'}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </header>
+
+              <ul className={styles.features}>
+                {plan.features.map((feature, i) => (
+                  <FeatureRow key={i} feature={feature} />
+                ))}
+              </ul>
+
+              <Button
+                type="button"
+                size="lg"
+                disabled={submitting || busyPlan === plan.id}
+                onClick={() => onPick(plan)}
+                className={styles.cta}
+              >
+                {busyPlan === plan.id
+                  ? 'Starting…'
+                  : isFree
+                    ? 'Get started'
+                    : `Choose ${plan.name}`}
+              </Button>
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -239,6 +289,22 @@ function FeatureRow({ feature }: { feature: PlanFeature }) {
 
 function pickPrice(prices: PlanPrice[], currency: string): PlanPrice | undefined {
   return prices.find((p) => p.currency === currency);
+}
+
+function symbolForCurrency(code: string): string {
+  try {
+    const part = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })
+      .formatToParts(0)
+      .find((p) => p.type === 'currency')?.value;
+    return part || code;
+  } catch {
+    return code;
+  }
 }
 
 /* Re-export labels for dashboard fallbacks. */
