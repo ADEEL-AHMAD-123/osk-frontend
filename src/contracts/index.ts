@@ -20,3 +20,4 @@ export * from './settings.dto';
 export * from './pricing.dto';
 export * from './payment.dto';
 export * from './subscription.dto';
+export * from './email.dto';

@@ -22,6 +22,7 @@ export const API_TAGS = [
   'Payment',
   'SubscriptionPlan',
   'Subscription',
+  'EmailSettings',
 ] as const;
 
 export type ApiTag = (typeof API_TAGS)[number];
