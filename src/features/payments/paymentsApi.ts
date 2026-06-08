@@ -17,6 +17,26 @@ export const paymentsApi = baseApi.injectEndpoints({
       providesTags: [{ type: 'Payment', id: 'MINE' }],
     }),
 
+    getPayment: build.query<Payment, string>({
+      query: (id) => `/payments/${id}`,
+      transformResponse: (r: ApiSuccess<Payment>) => r.data,
+      providesTags: (_r, _e, id) => [{ type: 'Payment', id }],
+    }),
+
+    attachProofOfPayment: build.mutation<Payment, { id: string; url: string }>({
+      query: ({ id, url }) => ({
+        url: `/payments/${id}/proof`,
+        method: 'POST',
+        body: { url },
+      }),
+      transformResponse: (r: ApiSuccess<Payment>) => r.data,
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'Payment', id: arg.id },
+        { type: 'Payment', id: 'MINE' },
+        { type: 'Payment', id: 'ADMIN' },
+      ],
+    }),
+
     /* Admin */
     listAdminPayments: build.query<Payment[], void>({
       query: () => '/payments',
@@ -45,6 +65,8 @@ export const paymentsApi = baseApi.injectEndpoints({
 
 export const {
   useListMyPaymentsQuery,
+  useGetPaymentQuery,
+  useAttachProofOfPaymentMutation,
   useListAdminPaymentsQuery,
   useConfirmPaymentMutation,
 } = paymentsApi;

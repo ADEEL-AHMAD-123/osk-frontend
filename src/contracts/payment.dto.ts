@@ -24,6 +24,10 @@ export interface Payment {
   currency: string;
   providerRef?: string;
   metadata: Record<string, string>;
+  /** Bank-transfer proof screenshot URL, when uploaded. */
+  proofUrl?: string;
+  /** ISO timestamp the proof was uploaded. */
+  proofUploadedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

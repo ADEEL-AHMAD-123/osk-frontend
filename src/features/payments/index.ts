@@ -2,6 +2,8 @@
 export {
   paymentsApi,
   useListMyPaymentsQuery,
+  useGetPaymentQuery,
+  useAttachProofOfPaymentMutation,
   useListAdminPaymentsQuery,
   useConfirmPaymentMutation,
 } from './paymentsApi';
