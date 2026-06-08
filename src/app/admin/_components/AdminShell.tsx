@@ -123,8 +123,33 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    href: '/admin/plans',
+    label: 'Plans',
+    icon: (
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <rect
+          x="3"
+          y="4"
+          width="18"
+          height="16"
+          rx="2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M7 9h10M7 13h6M7 17h4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/pricing',
-    label: 'Pricing',
+    label: 'Payment config',
     icon: (
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
         <path
