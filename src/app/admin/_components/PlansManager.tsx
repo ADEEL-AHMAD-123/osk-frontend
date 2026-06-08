@@ -15,11 +15,27 @@ import {
   useListSubscriptionPlansAdminQuery,
   useUpdateSubscriptionPlanMutation,
 } from '@/features/subscriptions';
+import { useGetPaymentSettingsQuery } from '@/features/pricing';
 import { toastPushed } from '@/features/ui';
 import { useAppDispatch } from '@/store/hooks';
 import { Button, TextField } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import styles from './PlansManager.module.scss';
+
+/** Fallback when /pricing/settings hasn't loaded yet — keeps the
+ *  editor functional during the first paint. Kept in sync with the
+ *  backend BILLING_CURRENCIES constant. */
+const DEFAULT_BILLING_CURRENCIES = [
+  'USD',
+  'CAD',
+  'EUR',
+  'GBP',
+  'AUD',
+  'NGN',
+  'GHS',
+  'ZAR',
+  'KES',
+] as const;
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Subscription plans admin.
@@ -86,8 +102,7 @@ function planToDraft(p: SubscriptionPlan): Draft {
       label: f.label,
       included: f.included,
       key: f.key ?? '',
-      limit:
-        f.limit === undefined || f.limit === null ? '' : String(f.limit),
+      limit: f.limit === undefined || f.limit === null ? '' : String(f.limit),
     })),
   };
 }
@@ -123,11 +138,14 @@ function draftToDto(d: Draft): CreateSubscriptionPlanDto {
 export function PlansManager() {
   const dispatch = useAppDispatch();
   const { data: plans, isLoading } = useListSubscriptionPlansAdminQuery();
-  const [createPlan, { isLoading: creating }] =
-    useCreateSubscriptionPlanMutation();
-  const [updatePlan, { isLoading: updating }] =
-    useUpdateSubscriptionPlanMutation();
+  const { data: paymentSettings } = useGetPaymentSettingsQuery();
+  const [createPlan, { isLoading: creating }] = useCreateSubscriptionPlanMutation();
+  const [updatePlan, { isLoading: updating }] = useUpdateSubscriptionPlanMutation();
   const [deletePlan] = useDeleteSubscriptionPlanMutation();
+
+  const billingCurrencies = paymentSettings?.billingCurrencies?.length
+    ? paymentSettings.billingCurrencies
+    : DEFAULT_BILLING_CURRENCIES;
 
   const [draft, setDraft] = useState<Draft | null>(null);
 
@@ -141,9 +159,7 @@ export function PlansManager() {
       return;
     }
     if (!draft.slug || !/^[a-z0-9-]+$/.test(draft.slug)) {
-      dispatch(
-        toastPushed('error', 'Slug must be lowercase letters/digits/dashes.'),
-      );
+      dispatch(toastPushed('error', 'Slug must be lowercase letters/digits/dashes.'));
       return;
     }
     const dto = draftToDto(draft);
@@ -177,9 +193,9 @@ export function PlansManager() {
         <span className={styles.eyebrow}>Admin · Plans</span>
         <h1 className={styles.title}>Subscription plans</h1>
         <p className={styles.sub}>
-          Define the catalog sellers see at <code>/pricing</code>. Each
-          plan has localised prices (one per currency), a feature list
-          rendered on the card, and limits the app enforces server-side.
+          Define the catalog sellers see at <code>/pricing</code>. Each plan has localised
+          prices (one per currency), a feature list rendered on the card, and limits the
+          app enforces server-side.
         </p>
       </header>
 
@@ -193,8 +209,8 @@ export function PlansManager() {
         <p className={styles.muted}>Loading plans…</p>
       ) : !plans || plans.length === 0 ? (
         <p className={styles.muted}>
-          No plans yet — click &ldquo;New plan&rdquo; to add Free / Gold /
-          Premium or whatever fits.
+          No plans yet — click &ldquo;New plan&rdquo; to add Free / Gold / Premium or
+          whatever fits.
         </p>
       ) : (
         <div className={styles.tableWrap}>
@@ -226,9 +242,7 @@ export function PlansManager() {
                   <td>
                     {p.prices.length === 0
                       ? '—'
-                      : p.prices
-                          .map((pr) => `${pr.amount} ${pr.currency}`)
-                          .join(' · ')}
+                      : p.prices.map((pr) => `${pr.amount} ${pr.currency}`).join(' · ')}
                   </td>
                   <td>{p.features.length}</td>
                   <td>
@@ -271,6 +285,7 @@ export function PlansManager() {
           onSave={onSave}
           onCancel={() => setDraft(null)}
           saving={creating || updating}
+          billingCurrencies={billingCurrencies}
         />
       ) : null}
     </section>
@@ -285,18 +300,25 @@ function DraftEditor({
   onSave,
   onCancel,
   saving,
+  billingCurrencies,
 }: {
   draft: Draft;
   setDraft: (d: Draft | null) => void;
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
+  billingCurrencies: readonly string[];
 }) {
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
     setDraft({ ...draft, [k]: v });
 
-  const addPrice = () =>
-    set('prices', [...draft.prices, { currency: '', amount: '0' }]);
+  const addPrice = () => {
+    /* Default to the first billing currency not already in use, or
+     * USD if every code is exhausted. */
+    const used = new Set(draft.prices.map((p) => p.currency.toUpperCase()));
+    const next = billingCurrencies.find((c) => !used.has(c.toUpperCase())) ?? 'USD';
+    set('prices', [...draft.prices, { currency: next, amount: '0' }]);
+  };
   const updatePrice = (i: number, patch: Partial<DraftPrice>) =>
     set(
       'prices',
@@ -329,8 +351,8 @@ function DraftEditor({
       <header className={styles.editorHead}>
         <h2>{draft.id ? 'Edit plan' : 'New plan'}</h2>
         <p className={styles.muted}>
-          Slug is the stable identifier — pick something durable like{' '}
-          <code>free</code>, <code>gold</code>, <code>premium</code>.
+          Slug is the stable identifier — pick something durable like <code>free</code>,{' '}
+          <code>gold</code>, <code>premium</code>.
         </p>
       </header>
 
@@ -372,9 +394,7 @@ function DraftEditor({
           label="Sort order"
           type="number"
           value={String(draft.sortOrder)}
-          onChange={(e) =>
-            set('sortOrder', Number(e.target.value) || 0)
-          }
+          onChange={(e) => set('sortOrder', Number(e.target.value) || 0)}
           hint="Lower = appears first"
         />
         <label className={styles.checkRow}>
@@ -403,6 +423,12 @@ function DraftEditor({
             + Add price
           </Button>
         </header>
+        <p className={styles.muted}>
+          Prices must be in one of the platform&apos;s real billing currencies. The
+          pricing page converts these into the user&apos;s local currency for display; the
+          actual charge always uses one of the values you set here. Add a USD price to
+          every paid plan so Stripe/PayPal users always have a fallback.
+        </p>
         {draft.prices.length === 0 ? (
           <p className={styles.muted}>
             No prices set — plan will render as &ldquo;Free&rdquo;.
@@ -411,15 +437,28 @@ function DraftEditor({
           <div className={styles.priceList}>
             {draft.prices.map((p, i) => (
               <div key={i} className={styles.priceRow}>
-                <input
-                  className={styles.input}
+                <select
+                  className={styles.select}
                   value={p.currency}
-                  maxLength={3}
-                  placeholder="USD"
                   onChange={(e) =>
-                    updatePrice(i, { currency: e.target.value.toUpperCase() })
+                    updatePrice(i, {
+                      currency: e.target.value.toUpperCase(),
+                    })
                   }
-                />
+                >
+                  {/* Keep any legacy non-billing currency selectable
+                   *  so the editor doesn't silently drop the row. The
+                   *  schema will reject it on save with a clear
+                   *  error. */}
+                  {!billingCurrencies.includes(p.currency.toUpperCase()) && p.currency ? (
+                    <option value={p.currency}>{p.currency} (invalid)</option>
+                  ) : null}
+                  {billingCurrencies.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
                 <input
                   className={styles.input}
                   type="number"
@@ -450,8 +489,8 @@ function DraftEditor({
         </header>
         {draft.features.length === 0 ? (
           <p className={styles.muted}>
-            No features yet — the card will be empty. Add &ldquo;Agency
-            Profile&rdquo;, &ldquo;10 Agents&rdquo;, etc.
+            No features yet — the card will be empty. Add &ldquo;Agency Profile&rdquo;,
+            &ldquo;10 Agents&rdquo;, etc.
           </p>
         ) : (
           <div className={styles.featureList}>
@@ -461,9 +500,7 @@ function DraftEditor({
                   className={styles.input}
                   placeholder="Feature label (e.g. 10 Agents)"
                   value={f.label}
-                  onChange={(e) =>
-                    updateFeature(i, { label: e.target.value })
-                  }
+                  onChange={(e) => updateFeature(i, { label: e.target.value })}
                 />
                 <select
                   className={styles.select}
@@ -487,9 +524,7 @@ function DraftEditor({
                   min={0}
                   placeholder="Limit"
                   value={f.limit ?? ''}
-                  onChange={(e) =>
-                    updateFeature(i, { limit: e.target.value })
-                  }
+                  onChange={(e) => updateFeature(i, { limit: e.target.value })}
                 />
                 <label className={styles.checkRow}>
                   <input

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  PROVIDER_KEYS,
   PROVIDER_LABELS,
+  type PaymentSettings,
   type PlanFeature,
   type PlanPrice,
+  type ProviderKey,
   type SubscriptionPlan,
 } from '@contracts';
 import {
@@ -15,188 +16,50 @@ import {
 } from '@/features/subscriptions';
 import { selectActiveCountry } from '@/features/geo';
 import { selectCurrentUser } from '@/features/auth';
-import { toastPushed } from '@/features/ui';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { useGetPaymentSettingsQuery } from '@/features/pricing';
 import { currencyForCountry, currencySymbolForCountry } from '@/lib/geoData';
+import { convertAmount } from '@/lib/fx';
+import { formatPrice } from '@/lib/format';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import styles from './PricingPlans.module.scss';
 
-const PAYSTACK_SUPPORTED_CURRENCIES = new Set(['NGN', 'GHS', 'ZAR', 'USD', 'KES']);
-
 /* ─────────────────────────────────────────────────────────────────────────
- * Public pricing grid. Reads plans from the catalog, picks the price for
- * the active country's currency (falls back to the plan's first price),
- * and routes the seller into checkout. Free plans skip payment entirely.
- * ──────────────────────────────────────────────────────────────────────── */
+ * Public pricing grid.
+ *
+ *  Display vs. billing — the platform charges in a small set of real
+ *  billing currencies (USD / CAD / NGN / GHS / ZAR / KES / EUR / GBP /
+ *  AUD). Every plan card shows BOTH:
+ *
+ *    1. A converted "feels-local" price in the user's country currency
+ *       (e.g. "≈ PKR 22,000") — for UX only.
+ *    2. The canonical "Billed at X Y at checkout" caption — the
+ *       guaranteed-correct figure the user will actually pay.
+ *
+ *  When the user picks a paid plan, a checkout-options modal opens
+ *  listing every valid (provider, billing-currency, amount) tuple —
+ *  driven by /pricing/settings.providerBillingCurrencies — so we never
+ *  surface an impossible combo. The server re-validates the pick
+ *  before creating the payment intent.
+ * ──────────────────────────────────────────────────────────────────── */
 
 export function PricingPlans() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const user = useAppSelector(selectCurrentUser);
   const activeCountry = useAppSelector(selectActiveCountry);
-  const currency = useMemo(() => currencyForCountry(activeCountry), [activeCountry]);
-  const symbol = useMemo(() => currencySymbolForCountry(activeCountry), [activeCountry]);
-
-  const { data: plans, isLoading } = useListSubscriptionPlansQuery();
-  const { data: paymentSettings, isLoading: paymentSettingsLoading } =
-    useGetPaymentSettingsQuery();
-  const [subscribe, { isLoading: submitting }] = useSubscribeMutation();
-  const [busyPlan, setBusyPlan] = useState<string | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('');
-
-  const availableCurrencies = useMemo(() => {
-    if (!plans) return [] as string[];
-    const codes = new Set<string>();
-    for (const plan of plans) {
-      for (const p of plan.prices) codes.add(p.currency.toUpperCase());
-    }
-    return Array.from(codes).sort();
-  }, [plans]);
-
-  const preferredCurrency = useMemo(
-    () =>
-      availableCurrencies.includes(currency)
-        ? currency
-        : (availableCurrencies[0] ?? currency),
-    [availableCurrencies, currency],
+  const localCurrency = useMemo(() => currencyForCountry(activeCountry), [activeCountry]);
+  const localSymbol = useMemo(
+    () => currencySymbolForCountry(activeCountry),
+    [activeCountry],
   );
 
-  useEffect(() => {
-    if (!selectedCurrency || !availableCurrencies.includes(selectedCurrency)) {
-      setSelectedCurrency(preferredCurrency);
-    }
-  }, [availableCurrencies, preferredCurrency, selectedCurrency]);
+  const { data: plans, isLoading } = useListSubscriptionPlansQuery();
+  const { data: paymentSettings } = useGetPaymentSettingsQuery();
+  const [subscribe, { isLoading: submitting }] = useSubscribeMutation();
 
-  const checkoutCurrencyPreference = selectedCurrency || preferredCurrency;
-
-  const onPick = async (plan: SubscriptionPlan) => {
-    if (!user) {
-      router.push(`/sign-in?returnTo=/pricing`);
-      return;
-    }
-
-    const price = pickPrice(plan.prices, checkoutCurrencyPreference);
-    const effectivePrice = price ?? plan.prices[0];
-    const checkoutCurrency = effectivePrice?.currency ?? checkoutCurrencyPreference;
-    const isFree = !effectivePrice || effectivePrice.amount === 0;
-
-    /* Free plans: subscribe and route to dashboard. */
-    if (isFree) {
-      setBusyPlan(plan.id);
-      try {
-        await subscribe({ planId: plan.id, currency: checkoutCurrency }).unwrap();
-        router.push('/dashboard/subscription?status=success');
-      } catch {
-        /* handled by global toast */
-      } finally {
-        setBusyPlan(null);
-      }
-      return;
-    }
-
-    /* Paid plans: prefer an online provider when available (e.g. Paystack)
-     * and only fall back to bank-transfer when it is the sole option. */
-    if (paymentSettingsLoading) {
-      dispatch(
-        toastPushed('info', 'Loading payment methods. Please try again in a moment.'),
-      );
-      return;
-    }
-
-    const enabledProviders = paymentSettings?.enabledProviders?.length
-      ? paymentSettings.enabledProviders
-      : (['paystack', 'bank-transfer'] as const);
-    let provider =
-      enabledProviders.find((p) => p !== 'bank-transfer') ??
-      enabledProviders[0] ??
-      PROVIDER_KEYS[0];
-
-    /* Strict guard: never attempt Paystack for unsupported currencies. */
-    if (
-      provider === 'paystack' &&
-      !PAYSTACK_SUPPORTED_CURRENCIES.has(checkoutCurrency.toUpperCase())
-    ) {
-      if (enabledProviders.includes('bank-transfer')) {
-        provider = 'bank-transfer';
-        dispatch(
-          toastPushed(
-            'info',
-            `Paystack does not support ${checkoutCurrency.toUpperCase()} for this account. Continuing with bank transfer instead.`,
-          ),
-        );
-      } else {
-        dispatch(
-          toastPushed(
-            'error',
-            `Paystack cannot process ${checkoutCurrency.toUpperCase()} for this plan. Choose another plan/currency or enable bank transfer.`,
-          ),
-        );
-        return;
-      }
-    }
-
-    setBusyPlan(plan.id);
-    try {
-      const result = await subscribe({
-        planId: plan.id,
-        currency: checkoutCurrency,
-        provider,
-      }).unwrap();
-      if (result.redirectUrl) {
-        window.location.href = result.redirectUrl;
-      } else {
-        router.push('/dashboard/subscription');
-      }
-    } catch (err) {
-      const message = String(
-        (err as { data?: { error?: { message?: string } } })?.data?.error?.message ?? '',
-      );
-      const canFallbackToBank =
-        provider !== 'bank-transfer' &&
-        enabledProviders.includes('bank-transfer') &&
-        /subscription currency/i.test(message);
-
-      if (canFallbackToBank) {
-        try {
-          const bankResult = await subscribe({
-            planId: plan.id,
-            currency: checkoutCurrency,
-            provider: 'bank-transfer',
-          }).unwrap();
-          if (bankResult.redirectUrl) {
-            window.location.href = bankResult.redirectUrl;
-            return;
-          }
-        } catch {
-          /* handled by global toast */
-        }
-      }
-      const providerDisabled = /Provider\s+".+"\s+is currently disabled/i.test(message);
-      if (providerDisabled) {
-        const retryProvider = enabledProviders.find((p) => p !== provider) ?? null;
-        if (retryProvider) {
-          try {
-            const retryResult = await subscribe({
-              planId: plan.id,
-              currency: checkoutCurrency,
-              provider: retryProvider,
-            }).unwrap();
-            if (retryResult.redirectUrl) {
-              window.location.href = retryResult.redirectUrl;
-              return;
-            }
-          } catch {
-            /* handled by global toast */
-          }
-        }
-      }
-      /* handled by global toast */
-    } finally {
-      setBusyPlan(null);
-    }
-  };
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [busyOption, setBusyOption] = useState<string | null>(null);
 
   if (isLoading) {
     return <p className={styles.loading}>Loading plans…</p>;
@@ -208,93 +71,163 @@ export function PricingPlans() {
     );
   }
 
+  const onPick = async (plan: SubscriptionPlan) => {
+    if (!user) {
+      router.push(`/sign-in?returnTo=/pricing`);
+      return;
+    }
+
+    const isFree = plan.prices.length === 0 || plan.prices.every((p) => p.amount === 0);
+
+    if (isFree) {
+      setBusyOption(`free-${plan.id}`);
+      try {
+        await subscribe({ planId: plan.id }).unwrap();
+        router.push('/dashboard/subscription?status=success');
+      } catch {
+        /* surfaced by the global toast */
+      } finally {
+        setBusyOption(null);
+      }
+      return;
+    }
+
+    /* Paid plans: open the picker so the seller chooses provider +
+     * billing currency from the valid combos. */
+    setSelectedPlan(plan);
+  };
+
+  const onPickOption = async (
+    plan: SubscriptionPlan,
+    provider: ProviderKey,
+    currency: string,
+  ) => {
+    const key = `${plan.id}-${provider}-${currency}`;
+    setBusyOption(key);
+    try {
+      const result = await subscribe({
+        planId: plan.id,
+        provider,
+        currency,
+      }).unwrap();
+      if (result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else {
+        router.push('/dashboard/subscription?status=success');
+      }
+    } catch {
+      /* surfaced by the global toast */
+    } finally {
+      setBusyOption(null);
+    }
+  };
+
   return (
     <>
-      {availableCurrencies.length > 1 ? (
-        <div className={styles.currencyBar}>
-          <label htmlFor="pricing-currency" className={styles.currencyLabel}>
-            Billing currency
-          </label>
-          <select
-            id="pricing-currency"
-            value={checkoutCurrencyPreference}
-            onChange={(e) => setSelectedCurrency(e.currentTarget.value.toUpperCase())}
-            className={styles.currencySelect}
-          >
-            {availableCurrencies.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
-
       <div className={styles.grid}>
-        {plans.map((plan) => {
-          const price = pickPrice(plan.prices, checkoutCurrencyPreference);
-          const displayAmount = price?.amount ?? plan.prices[0]?.amount ?? 0;
-          const displayCurrency = price?.currency ?? plan.prices[0]?.currency ?? 'USD';
-          const displaySymbol =
-            displayCurrency === currency ? symbol : symbolForCurrency(displayCurrency);
-          const isFree = displayAmount === 0;
-          return (
-            <article
-              key={plan.id}
-              className={cn(styles.card, plan.highlight && styles.cardHighlight)}
-            >
-              {plan.highlight ? (
-                <span className={styles.popular}>Most popular</span>
-              ) : null}
-              <header className={styles.cardHead}>
-                <h2 className={styles.name}>{plan.name}</h2>
-                {plan.tagline ? <p className={styles.tagline}>{plan.tagline}</p> : null}
-                <div className={styles.priceBlock}>
-                  {isFree ? (
-                    <span className={styles.priceFree}>Free</span>
-                  ) : (
-                    <>
-                      <span className={styles.priceAmount}>
-                        {displaySymbol}
-                        {displayAmount.toLocaleString('en-US')}
-                      </span>
-                      <span className={styles.priceCadence}>
-                        /
-                        {plan.interval === 'year'
-                          ? 'yr'
-                          : plan.interval === 'month'
-                            ? 'mo'
-                            : 'once'}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </header>
-
-              <ul className={styles.features}>
-                {plan.features.map((feature, i) => (
-                  <FeatureRow key={i} feature={feature} />
-                ))}
-              </ul>
-
-              <Button
-                type="button"
-                size="lg"
-                disabled={submitting || busyPlan === plan.id}
-                onClick={() => onPick(plan)}
-                className={styles.cta}
-              >
-                {busyPlan === plan.id
-                  ? 'Starting…'
-                  : isFree
-                    ? 'Get started'
-                    : `Choose ${plan.name}`}
-              </Button>
-            </article>
-          );
-        })}
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            localCurrency={localCurrency}
+            localSymbol={localSymbol}
+            busy={busyOption === `free-${plan.id}`}
+            onPick={() => onPick(plan)}
+          />
+        ))}
       </div>
+
+      {selectedPlan && paymentSettings ? (
+        <CheckoutPicker
+          plan={selectedPlan}
+          settings={paymentSettings}
+          localCurrency={localCurrency}
+          submitting={submitting}
+          busyOption={busyOption}
+          onPick={(provider, currency) => onPickOption(selectedPlan, provider, currency)}
+          onCancel={() => setSelectedPlan(null)}
+        />
+      ) : null}
     </>
+  );
+}
+
+/* ─── Plan card ───────────────────────────────────────────────────────── */
+
+interface PlanCardProps {
+  plan: SubscriptionPlan;
+  localCurrency: string;
+  localSymbol: string;
+  busy: boolean;
+  onPick: () => void;
+}
+
+function PlanCard({ plan, localCurrency, localSymbol, busy, onPick }: PlanCardProps) {
+  const isFree = plan.prices.length === 0 || plan.prices.every((p) => p.amount === 0);
+  /* The canonical "billed at" anchor: prefer USD as the universal
+   * baseline, otherwise the plan's first price. */
+  const billingPrice = plan.prices.find((p) => p.currency === 'USD') ?? plan.prices[0];
+  /* Convert it into the user's local currency for the big number. */
+  const displayAmount = billingPrice
+    ? Math.round(convertAmount(billingPrice.amount, billingPrice.currency, localCurrency))
+    : 0;
+  /* Skip the "≈ X" prefix when display currency matches the billing
+   * currency — no conversion happened, the number is exact. */
+  const showApprox =
+    !!billingPrice && billingPrice.currency.toUpperCase() !== localCurrency.toUpperCase();
+
+  return (
+    <article className={cn(styles.card, plan.highlight && styles.cardHighlight)}>
+      {plan.highlight ? <span className={styles.popular}>Most popular</span> : null}
+      <header className={styles.cardHead}>
+        <h2 className={styles.name}>{plan.name}</h2>
+        {plan.tagline ? <p className={styles.tagline}>{plan.tagline}</p> : null}
+        <div className={styles.priceBlock}>
+          {isFree ? (
+            <span className={styles.priceFree}>Free</span>
+          ) : (
+            <>
+              <span className={styles.priceAmount}>
+                {showApprox ? '≈ ' : ''}
+                {localSymbol}
+                {displayAmount.toLocaleString('en-US')}
+              </span>
+              <span className={styles.priceCadence}>
+                /
+                {plan.interval === 'year'
+                  ? 'yr'
+                  : plan.interval === 'month'
+                    ? 'mo'
+                    : 'once'}
+              </span>
+            </>
+          )}
+        </div>
+        {!isFree && billingPrice ? (
+          <p className={styles.billedAt}>
+            Billed at{' '}
+            <strong>{formatPrice(billingPrice.amount, billingPrice.currency)}</strong> at
+            checkout
+          </p>
+        ) : null}
+      </header>
+
+      <ul className={styles.features}>
+        {plan.features.map((feature, i) => (
+          <FeatureRow key={i} feature={feature} />
+        ))}
+      </ul>
+
+      <Button
+        type="button"
+        size="lg"
+        disabled={busy}
+        onClick={onPick}
+        className={styles.cta}
+      >
+        {busy ? 'Starting…' : isFree ? 'Get started' : `Choose ${plan.name}`}
+      </Button>
+    </article>
   );
 }
 
@@ -314,24 +247,137 @@ function FeatureRow({ feature }: { feature: PlanFeature }) {
   );
 }
 
-function pickPrice(prices: PlanPrice[], currency: string): PlanPrice | undefined {
-  return prices.find((p) => p.currency === currency);
+/* ─── Checkout picker modal ───────────────────────────────────────────── */
+
+interface CheckoutPickerProps {
+  plan: SubscriptionPlan;
+  settings: PaymentSettings;
+  localCurrency: string;
+  submitting: boolean;
+  busyOption: string | null;
+  onPick: (provider: ProviderKey, currency: string) => void;
+  onCancel: () => void;
 }
 
-function symbolForCurrency(code: string): string {
-  try {
-    const part = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: code,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })
-      .formatToParts(0)
-      .find((p) => p.type === 'currency')?.value;
-    return part || code;
-  } catch {
-    return code;
+/**
+ * Cross-product of (enabled + ready providers) × (plan prices in
+ * their supported currencies). Sorted so currencies matching the
+ * user's local currency come first.
+ */
+function buildCheckoutOptions(
+  plan: SubscriptionPlan,
+  settings: PaymentSettings,
+  localCurrency: string,
+): Array<{ provider: ProviderKey; price: PlanPrice }> {
+  if (!settings.paymentsEnabled) return [];
+  const options: Array<{
+    provider: ProviderKey;
+    price: PlanPrice;
+    score: number;
+  }> = [];
+  const upper = localCurrency.toUpperCase();
+  for (const provider of settings.enabledProviders) {
+    if (!settings.providerReady[provider]) continue;
+    const supported = (settings.providerBillingCurrencies[provider] ?? []).map((c) =>
+      c.toUpperCase(),
+    );
+    for (const price of plan.prices) {
+      if (!supported.includes(price.currency.toUpperCase())) continue;
+      options.push({
+        provider,
+        price,
+        /* Lower score ranks higher — match local currency first, then
+         * keep online providers ahead of bank-transfer so the seller
+         * sees the fast path at the top. */
+        score:
+          (price.currency.toUpperCase() === upper ? 0 : 2) +
+          (provider === 'bank-transfer' ? 1 : 0),
+      });
+    }
   }
+  options.sort((a, b) => a.score - b.score);
+  return options.map(({ provider, price }) => ({ provider, price }));
+}
+
+function CheckoutPicker({
+  plan,
+  settings,
+  localCurrency,
+  submitting,
+  busyOption,
+  onPick,
+  onCancel,
+}: CheckoutPickerProps) {
+  const options = useMemo(
+    () => buildCheckoutOptions(plan, settings, localCurrency),
+    [plan, settings, localCurrency],
+  );
+
+  return (
+    <div
+      className={styles.modalBackdrop}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Choose how to pay for ${plan.name}`}
+      onClick={onCancel}
+    >
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <header className={styles.modalHead}>
+          <p className={styles.modalEyebrow}>Checkout</p>
+          <h3 className={styles.modalTitle}>Pay for {plan.name}</h3>
+          <p className={styles.modalSub}>
+            Pick the payment method and currency you want to be charged in. We&rsquo;ll
+            redirect you to the provider to complete payment.
+          </p>
+        </header>
+
+        {options.length === 0 ? (
+          <p className={styles.modalEmpty}>
+            No payment method is available for this plan right now. Please contact
+            support.
+          </p>
+        ) : (
+          <ul className={styles.optionList}>
+            {options.map(({ provider, price }) => {
+              const key = `${plan.id}-${provider}-${price.currency}`;
+              const busy = busyOption === key;
+              return (
+                <li key={key} className={styles.option}>
+                  <div className={styles.optionMain}>
+                    <span className={styles.optionProvider}>
+                      {PROVIDER_LABELS[provider]}
+                    </span>
+                    <span className={styles.optionAmount}>
+                      {formatPrice(price.amount, price.currency)}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onPick(provider, price.currency)}
+                    disabled={submitting || busy}
+                  >
+                    {busy ? 'Redirecting…' : 'Continue'}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <footer className={styles.modalFoot}>
+          <button
+            type="button"
+            className={styles.modalCancel}
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
 }
 
 /* Re-export labels for dashboard fallbacks. */

@@ -10,12 +10,7 @@ import { z } from 'zod';
  * of subscription plans (see `contracts/subscription.dto.ts`).
  * ──────────────────────────────────────────────────────────────────── */
 
-export const PROVIDER_KEYS = [
-  'stripe',
-  'paypal',
-  'paystack',
-  'bank-transfer',
-] as const;
+export const PROVIDER_KEYS = ['stripe', 'paypal', 'paystack', 'bank-transfer'] as const;
 export type ProviderKey = (typeof PROVIDER_KEYS)[number];
 
 export const PROVIDER_LABELS: Record<ProviderKey, string> = {
@@ -64,6 +59,14 @@ export interface PaymentSettings {
    * "Active / Needs setup" badge in the admin UI.
    */
   providerReady: Record<ProviderKey, boolean>;
+  /**
+   * The billing currencies each provider can charge in. Drives the
+   * checkout picker so users only see valid (provider, currency)
+   * options — no impossible combos. Read-only platform constant.
+   */
+  providerBillingCurrencies: Record<ProviderKey, readonly string[]>;
+  /** Union of every supported billing currency. */
+  billingCurrencies: readonly string[];
 }
 
 /* Per-provider credential patches — admin sends raw values, backend
@@ -81,12 +84,7 @@ const paypalCredentialsPatch = z
   .object({
     clientId: secretField,
     clientSecret: secretField,
-    apiBase: z
-      .string()
-      .url()
-      .max(200)
-      .optional()
-      .or(z.literal('')),
+    apiBase: z.string().url().max(200).optional().or(z.literal('')),
     webhookId: secretField,
   })
   .partial();
@@ -105,6 +103,4 @@ export const updatePaymentSettingsSchema = z.object({
   paypal: paypalCredentialsPatch.optional(),
   paystack: paystackCredentialsPatch.optional(),
 });
-export type UpdatePaymentSettingsDto = z.infer<
-  typeof updatePaymentSettingsSchema
->;
+export type UpdatePaymentSettingsDto = z.infer<typeof updatePaymentSettingsSchema>;

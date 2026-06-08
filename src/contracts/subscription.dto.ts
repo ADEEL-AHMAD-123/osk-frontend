@@ -84,6 +84,16 @@ export interface SubscribeResult {
     provider: string;
     status: string;
   };
+  /**
+   * The (provider, currency, amount) the seller will actually be
+   * charged. Echoed back so the UI can show "Billed at X Y" without
+   * having to re-derive it. Absent for free plans.
+   */
+  billing?: {
+    provider: (typeof PROVIDER_KEYS)[number];
+    currency: string;
+    amount: number;
+  };
 }
 
 /* ─── admin input schemas ─────────────────────────────────────────── */
@@ -118,14 +128,9 @@ export const createSubscriptionPlanSchema = z.object({
   highlight: z.boolean().default(false),
   active: z.boolean().default(true),
 });
-export type CreateSubscriptionPlanDto = z.infer<
-  typeof createSubscriptionPlanSchema
->;
-export const updateSubscriptionPlanSchema =
-  createSubscriptionPlanSchema.partial();
-export type UpdateSubscriptionPlanDto = z.infer<
-  typeof updateSubscriptionPlanSchema
->;
+export type CreateSubscriptionPlanDto = z.infer<typeof createSubscriptionPlanSchema>;
+export const updateSubscriptionPlanSchema = createSubscriptionPlanSchema.partial();
+export type UpdateSubscriptionPlanDto = z.infer<typeof updateSubscriptionPlanSchema>;
 
 export interface SubscribeDto {
   planId: string;

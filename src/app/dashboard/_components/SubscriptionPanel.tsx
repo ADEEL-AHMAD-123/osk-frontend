@@ -8,8 +8,12 @@ import {
   useGetMySubscriptionQuery,
   useListSubscriptionPlansQuery,
 } from '@/features/subscriptions';
+import { selectActiveCountry } from '@/features/geo';
 import { toastPushed } from '@/features/ui';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { currencyForCountry } from '@/lib/geoData';
+import { convertAmount } from '@/lib/fx';
+import { formatPrice } from '@/lib/format';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import styles from './SubscriptionPanel.module.scss';
@@ -29,6 +33,8 @@ export function SubscriptionPanel() {
   const { data: subscription, isLoading } = useGetMySubscriptionQuery();
   const { data: plans } = useListSubscriptionPlansQuery();
   const [cancel, { isLoading: cancelling }] = useCancelSubscriptionMutation();
+  const activeCountry = useAppSelector(selectActiveCountry);
+  const localCurrency = useMemo(() => currencyForCountry(activeCountry), [activeCountry]);
 
   const plan = useMemo<SubscriptionPlan | undefined>(() => {
     if (!subscription || !plans) return undefined;
@@ -36,11 +42,7 @@ export function SubscriptionPanel() {
   }, [subscription, plans]);
 
   const onCancel = async () => {
-    if (
-      !confirm(
-        'Cancel your subscription? You keep access until the period ends.',
-      )
-    ) {
+    if (!confirm('Cancel your subscription? You keep access until the period ends.')) {
       return;
     }
     try {
@@ -66,8 +68,8 @@ export function SubscriptionPanel() {
           <span className={styles.eyebrow}>Dashboard · Subscription</span>
           <h1 className={styles.title}>You don&rsquo;t have a plan yet.</h1>
           <p className={styles.sub}>
-            Pick a plan to start publishing listings, growing your agency,
-            and unlocking featured placements.
+            Pick a plan to start publishing listings, growing your agency, and unlocking
+            featured placements.
           </p>
         </header>
         <Link href="/pricing">
@@ -83,12 +85,12 @@ export function SubscriptionPanel() {
         <span className={styles.eyebrow}>Dashboard · Subscription</span>
         <h1 className={styles.title}>Your plan</h1>
         <p className={styles.sub}>
-          Manage your tier, see when your access renews, and upgrade
-          when you outgrow your current limits.
+          Manage your tier, see when your access renews, and upgrade when you outgrow your
+          current limits.
         </p>
       </header>
 
-      <PlanCard subscription={subscription} plan={plan} />
+      <PlanCard subscription={subscription} plan={plan} localCurrency={localCurrency} />
 
       <div className={styles.actions}>
         <Link href="/pricing">
@@ -116,9 +118,11 @@ export function SubscriptionPanel() {
 function PlanCard({
   subscription,
   plan,
+  localCurrency,
 }: {
   subscription: Subscription;
   plan: SubscriptionPlan | undefined;
+  localCurrency: string;
 }) {
   const statusLabel: Record<Subscription['status'], string> = {
     'pending-payment': 'Awaiting payment',
@@ -126,26 +130,44 @@ function PlanCard({
     cancelled: 'Cancelled',
     expired: 'Expired',
   };
+  /* Prefer the matching local-currency price if the plan has one,
+   * otherwise the USD anchor, otherwise the first price. Display is
+   * always in the local currency (converted); the canonical billing
+   * value goes underneath. */
+  const billingPrice =
+    plan?.prices.find((p) => p.currency === localCurrency.toUpperCase()) ??
+    plan?.prices.find((p) => p.currency === 'USD') ??
+    plan?.prices[0];
+  const showApprox =
+    !!billingPrice && billingPrice.currency.toUpperCase() !== localCurrency.toUpperCase();
+  const displayAmount = billingPrice
+    ? Math.round(convertAmount(billingPrice.amount, billingPrice.currency, localCurrency))
+    : 0;
   return (
     <article className={styles.planCard}>
       <header className={styles.planHead}>
         <div>
           <h2 className={styles.planName}>{plan?.name ?? subscription.planSlug}</h2>
-          {plan?.tagline ? (
-            <p className={styles.planTagline}>{plan.tagline}</p>
-          ) : null}
+          {plan?.tagline ? <p className={styles.planTagline}>{plan.tagline}</p> : null}
         </div>
-        <span
-          className={cn(
-            styles.statusPill,
-            styles[`status_${subscription.status}`],
-          )}
-        >
+        <span className={cn(styles.statusPill, styles[`status_${subscription.status}`])}>
           {statusLabel[subscription.status]}
         </span>
       </header>
 
       <dl className={styles.meta}>
+        {billingPrice && billingPrice.amount > 0 ? (
+          <div className={styles.metaRow}>
+            <dt>Price</dt>
+            <dd>
+              {showApprox ? `≈ ${formatPrice(displayAmount, localCurrency)} ` : ''}
+              <strong>{formatPrice(billingPrice.amount, billingPrice.currency)}</strong>
+              {plan?.interval && plan.interval !== 'one-time'
+                ? ` / ${plan.interval === 'year' ? 'yr' : 'mo'}`
+                : ''}
+            </dd>
+          </div>
+        ) : null}
         <div className={styles.metaRow}>
           <dt>Started</dt>
           <dd>
@@ -160,10 +182,9 @@ function PlanCard({
           <dt>{subscription.cancelledAt ? 'Access until' : 'Renews on'}</dt>
           <dd>
             {subscription.currentPeriodEnd
-              ? new Date(subscription.currentPeriodEnd).toLocaleDateString(
-                  'en-US',
-                  { dateStyle: 'medium' },
-                )
+              ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
+                  dateStyle: 'medium',
+                })
               : '—'}
           </dd>
         </div>
