@@ -15,7 +15,7 @@ export type EmailProviderKey = (typeof EMAIL_PROVIDER_KEYS)[number];
 
 export const EMAIL_PROVIDER_LABELS: Record<EmailProviderKey, string> = {
   console: 'Console (logs only — no real send)',
-  resend: 'Resend (recommended)',
+  resend: 'Resend',
   smtp: 'SMTP (advanced)',
 };
 

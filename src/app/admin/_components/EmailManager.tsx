@@ -18,13 +18,17 @@ import { Button, TextField } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import styles from './EmailManager.module.scss';
 
+/* Admin UI currently exposes Resend only. Console/SMTP remain supported
+ * in backend logic and can be re-enabled in the dropdown later. */
+const ADMIN_EMAIL_PROVIDER_KEYS: EmailProviderKey[] = ['resend'];
+
 /* ─────────────────────────────────────────────────────────────────────────
  * Admin email-settings manager.
  *
- *  - Provider selector (Console / Resend / SMTP). The page only shows
+ *  - Provider selector (Resend only for now). The page only shows
  *    the credential form for the *currently selected* provider so the
  *    operator isn't distracted by config they don't need.
- *  - Resend: just an API key. Recommended for Railway / Vercel — works
+ *  - Resend: just an API key. Works
  *    out of the box, HTTPS-only, no port allow-listing.
  *  - SMTP: host / port / secure / user / password. For operators who
  *    already run their own mail.
@@ -186,7 +190,7 @@ export function EmailManager() {
               value={effectiveProvider}
               onChange={(e) => setProvider(e.currentTarget.value as EmailProviderKey)}
             >
-              {EMAIL_PROVIDER_KEYS.map((k) => (
+              {ADMIN_EMAIL_PROVIDER_KEYS.map((k) => (
                 <option key={k} value={k}>
                   {EMAIL_PROVIDER_LABELS[k]}
                 </option>
