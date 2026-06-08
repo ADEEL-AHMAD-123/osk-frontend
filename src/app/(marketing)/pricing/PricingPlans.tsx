@@ -40,7 +40,8 @@ export function PricingPlans() {
   const symbol = useMemo(() => currencySymbolForCountry(activeCountry), [activeCountry]);
 
   const { data: plans, isLoading } = useListSubscriptionPlansQuery();
-  const { data: paymentSettings } = useGetPaymentSettingsQuery();
+  const { data: paymentSettings, isLoading: paymentSettingsLoading } =
+    useGetPaymentSettingsQuery();
   const [subscribe, { isLoading: submitting }] = useSubscribeMutation();
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('');
@@ -97,9 +98,16 @@ export function PricingPlans() {
 
     /* Paid plans: prefer an online provider when available (e.g. Paystack)
      * and only fall back to bank-transfer when it is the sole option. */
+    if (paymentSettingsLoading) {
+      dispatch(
+        toastPushed('info', 'Loading payment methods. Please try again in a moment.'),
+      );
+      return;
+    }
+
     const enabledProviders = paymentSettings?.enabledProviders?.length
       ? paymentSettings.enabledProviders
-      : PROVIDER_KEYS;
+      : (['paystack', 'bank-transfer'] as const);
     let provider =
       enabledProviders.find((p) => p !== 'bank-transfer') ??
       enabledProviders[0] ??
@@ -163,6 +171,25 @@ export function PricingPlans() {
           }
         } catch {
           /* handled by global toast */
+        }
+      }
+      const providerDisabled = /Provider\s+".+"\s+is currently disabled/i.test(message);
+      if (providerDisabled) {
+        const retryProvider = enabledProviders.find((p) => p !== provider) ?? null;
+        if (retryProvider) {
+          try {
+            const retryResult = await subscribe({
+              planId: plan.id,
+              currency: checkoutCurrency,
+              provider: retryProvider,
+            }).unwrap();
+            if (retryResult.redirectUrl) {
+              window.location.href = retryResult.redirectUrl;
+              return;
+            }
+          } catch {
+            /* handled by global toast */
+          }
         }
       }
       /* handled by global toast */
