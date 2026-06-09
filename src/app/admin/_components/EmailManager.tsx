@@ -479,62 +479,24 @@ function SecretField({
 /* ─── template preview thumbnails ─────────────────────────────────── */
 
 function TemplatePreview({ templateKey }: { templateKey: EmailTemplateKey }) {
-  const configs = {
-    warm: {
-      bg: '#f7f5f1',
-      card: '#ffffff',
-      header: '#8a7a55',
-      headerBg: '#ffffff',
-      btn: '#1f2937',
-      text: '#1a1a1a',
-    },
-    clean: {
-      bg: '#f4f4f5',
-      card: '#ffffff',
-      header: '#18181b',
-      headerBg: '#ffffff',
-      btn: '#18181b',
-      text: '#09090b',
-    },
-    dark: {
-      bg: '#0a0a0a',
-      card: '#171717',
-      header: '#a3a3a3',
-      headerBg: '#171717',
-      btn: '#f5f5f5',
-      text: '#fafafa',
-    },
-    brand: {
-      bg: '#f8fafc',
-      card: '#ffffff',
-      header: '#ffffff',
-      headerBg: 'linear-gradient(135deg,#1d4ed8 0%,#7c3aed 100%)',
-      btn: '#1d4ed8',
-      text: '#0f172a',
-    },
-  };
-  const c = configs[templateKey];
+  const variantClass = {
+    warm: styles.templateWarm,
+    clean: styles.templateClean,
+    dark: styles.templateDark,
+    brand: styles.templateBrand,
+  }[templateKey];
+
   return (
-    <div
-      className={styles.templatePreview}
-      style={{ background: c.bg }}
-      aria-hidden="true"
-    >
-      <div className={styles.templatePreviewCard} style={{ background: c.card }}>
-        <div
-          className={styles.templatePreviewHeader}
-          style={{ background: c.headerBg, color: c.header }}
-        >
+    <div className={`${styles.templatePreview} ${variantClass}`} aria-hidden="true">
+      <div className={styles.templatePreviewCard}>
+        <div className={styles.templatePreviewHeader}>
           OSK
         </div>
-        <div className={styles.templatePreviewBody} style={{ color: c.text }}>
+        <div className={styles.templatePreviewBody}>
           <div className={styles.templatePreviewTitle} />
           <div className={styles.templatePreviewText} />
           <div className={styles.templatePreviewText} style={{ width: '75%' }} />
-          <div
-            className={styles.templatePreviewBtn}
-            style={{ background: templateKey === 'brand' ? c.headerBg : c.btn }}
-          />
+          <div className={styles.templatePreviewBtn} />
         </div>
       </div>
     </div>
