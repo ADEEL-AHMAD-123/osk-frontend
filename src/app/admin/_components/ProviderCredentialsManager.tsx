@@ -126,6 +126,7 @@ export function ProviderCredentialsManager({ settings }: Props) {
         onSave={saveStripe}
         hasChanges={Object.keys(stripeDraft).length > 0}
         docs="dashboard.stripe.com/apikeys"
+        requiredFields="Required: Secret key + Webhook signing secret"
       >
         <SecretField
           label="Secret key"
@@ -166,6 +167,7 @@ export function ProviderCredentialsManager({ settings }: Props) {
         onSave={savePayPal}
         hasChanges={Object.keys(paypalDraft).length > 0}
         docs="developer.paypal.com/dashboard/applications"
+        requiredFields="Required: Client ID + Client secret + API base + Webhook ID"
       >
         <SecretField
           label="Client ID"
@@ -228,6 +230,7 @@ export function ProviderCredentialsManager({ settings }: Props) {
         onSave={savePaystack}
         hasChanges={Object.keys(paystackDraft).length > 0}
         docs="dashboard.paystack.com/#/settings/developer"
+        requiredFields="Required: Secret key"
       >
         <SecretField
           label="Secret key"
@@ -274,6 +277,7 @@ interface ProviderCardProps {
   onSave: () => void;
   hasChanges: boolean;
   docs: string;
+  requiredFields: string;
   children: React.ReactNode;
 }
 
@@ -287,6 +291,7 @@ function ProviderCard({
   onSave,
   hasChanges,
   docs,
+  requiredFields,
   children,
 }: ProviderCardProps) {
   const fullyConfigured = configuredCount === totalFields;
@@ -306,6 +311,8 @@ function ProviderCard({
             >
               {docs}
             </a>
+            {'. '}
+            {requiredFields}
           </p>
         </div>
         <div className={styles.cardMeta}>

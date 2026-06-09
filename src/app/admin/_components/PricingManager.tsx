@@ -94,9 +94,12 @@ export function PricingManager() {
             <h2 className={styles.cardTitle}>Provider status</h2>
             <p className={styles.cardSub}>
               A provider is &ldquo;Active&rdquo; only when its required
-              keys are saved <em>and</em> it&apos;s enabled below. Bank
-              transfer needs no keys &mdash; it&apos;s confirmed
-              manually from the Payments page.
+              keys are saved <em>and</em> it&apos;s enabled below. Stripe
+              requires <strong>Secret key + Webhook secret</strong>.
+              PayPal requires <strong>Client ID + Client secret + API base + Webhook ID</strong>.
+              Paystack requires <strong>Secret key</strong>. Bank transfer
+              needs no keys &mdash; it&apos;s confirmed manually from the
+              Payments page.
             </p>
           </header>
           <ul className={styles.readyList}>

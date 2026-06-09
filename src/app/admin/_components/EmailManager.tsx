@@ -4,7 +4,11 @@ import { useState } from 'react';
 import {
   EMAIL_PROVIDER_KEYS,
   EMAIL_PROVIDER_LABELS,
+  EMAIL_TEMPLATE_KEYS,
+  EMAIL_TEMPLATE_LABELS,
+  EMAIL_TEMPLATE_DESCRIPTIONS,
   type EmailProviderKey,
+  type EmailTemplateKey,
 } from '@contracts';
 import {
   useGetEmailSettingsQuery,
@@ -18,17 +22,13 @@ import { Button, TextField } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import styles from './EmailManager.module.scss';
 
-/* Admin UI currently exposes Resend only. Console/SMTP remain supported
- * in backend logic and can be re-enabled in the dropdown later. */
-const ADMIN_EMAIL_PROVIDER_KEYS: EmailProviderKey[] = ['resend'];
-
 /* ─────────────────────────────────────────────────────────────────────────
  * Admin email-settings manager.
  *
- *  - Provider selector (Resend only for now). The page only shows
+ *  - Provider selector (Console / Resend / SMTP). The page only shows
  *    the credential form for the *currently selected* provider so the
  *    operator isn't distracted by config they don't need.
- *  - Resend: just an API key. Works
+ *  - Resend: just an API key.
  *    out of the box, HTTPS-only, no port allow-listing.
  *  - SMTP: host / port / secure / user / password. For operators who
  *    already run their own mail.
@@ -57,6 +57,7 @@ export function EmailManager() {
   const [sendTest, { isLoading: sending }] = useSendTestEmailMutation();
 
   const [provider, setProvider] = useState<EmailProviderKey | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState<EmailTemplateKey | null>(null);
   const [fromAddress, setFromAddress] = useState<string | null>(null);
   const [fromName, setFromName] = useState<string | null>(null);
   const [resendDraft, setResendDraft] = useState<ResendDraft>({});
@@ -74,6 +75,7 @@ export function EmailManager() {
   /* `provider` etc. start as null so the inputs reflect the saved doc
    * until the admin actually edits something. Coalesce here. */
   const effectiveProvider = provider ?? settings.provider;
+  const effectiveTemplate = activeTemplate ?? settings.activeTemplate;
   const effectiveFromAddress = fromAddress ?? settings.fromAddress;
   const effectiveFromName = fromName ?? settings.fromName;
   const effectiveTestRecipient = testRecipient || user?.email || '';
@@ -82,11 +84,13 @@ export function EmailManager() {
     try {
       await updateSettings({
         provider: effectiveProvider,
+        activeTemplate: effectiveTemplate,
         fromAddress: effectiveFromAddress,
         fromName: effectiveFromName,
       }).unwrap();
       dispatch(toastPushed('success', 'Email settings updated.'));
       setProvider(null);
+      setActiveTemplate(null);
       setFromAddress(null);
       setFromName(null);
     } catch {
@@ -144,7 +148,8 @@ export function EmailManager() {
           Configure the provider used for verify-email, password resets and inquiry
           notifications. <strong>Resend</strong> is the easiest choice for hosted deploys
           (Railway, Vercel, Render) — it&rsquo;s HTTPS-only and works without SMTP port
-          gymnastics.
+          gymnastics. The profile page &ldquo;Resend link&rdquo; action uses whichever
+          provider is active here.
         </p>
       </header>
 
@@ -190,7 +195,7 @@ export function EmailManager() {
               value={effectiveProvider}
               onChange={(e) => setProvider(e.currentTarget.value as EmailProviderKey)}
             >
-              {ADMIN_EMAIL_PROVIDER_KEYS.map((k) => (
+              {EMAIL_PROVIDER_KEYS.map((k) => (
                 <option key={k} value={k}>
                   {EMAIL_PROVIDER_LABELS[k]}
                 </option>
@@ -216,10 +221,61 @@ export function EmailManager() {
             type="button"
             onClick={onSaveTopLevel}
             disabled={
-              saving || (provider === null && fromAddress === null && fromName === null)
+              saving ||
+              (provider === null &&
+                activeTemplate === null &&
+                fromAddress === null &&
+                fromName === null)
             }
           >
             {saving ? 'Saving…' : 'Save'}
+          </Button>
+        </div>
+      </section>
+
+      {/* ── Email templates ─────────────────────────────────────────── */}
+      <section className={styles.card}>
+        <header className={styles.cardHead}>
+          <h2 className={styles.cardTitle}>Email template</h2>
+          <p className={styles.cardSub}>
+            Choose the visual style for all transactional emails (verify-email, password
+            reset, inquiry notifications). The selected template is used immediately —
+            no restart needed.
+          </p>
+        </header>
+        <div className={styles.templateGrid}>
+          {EMAIL_TEMPLATE_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={cn(
+                styles.templateCard,
+                effectiveTemplate === key && styles.templateCardActive,
+              )}
+              onClick={() => setActiveTemplate(key)}
+            >
+              <TemplatePreview templateKey={key} />
+              <span className={styles.templateName}>{EMAIL_TEMPLATE_LABELS[key]}</span>
+              <span className={styles.templateDesc}>{EMAIL_TEMPLATE_DESCRIPTIONS[key]}</span>
+              {effectiveTemplate === key ? (
+                <span className={styles.templateBadge}>Active</span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+        <div className={styles.formActions}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              updateSettings({ activeTemplate: effectiveTemplate }).unwrap().then(() => {
+                dispatch(toastPushed('success', 'Email template saved.'));
+                setActiveTemplate(null);
+              }).catch(() => {});
+            }}
+            disabled={saving || activeTemplate === null}
+          >
+            {saving ? 'Saving…' : 'Save template'}
           </Button>
         </div>
       </section>
@@ -406,5 +462,70 @@ function SecretField({
       />
       {hint ? <span className={styles.fieldHint}>{hint}</span> : null}
     </label>
+  );
+}
+
+/* ─── template preview thumbnails ─────────────────────────────────── */
+
+function TemplatePreview({ templateKey }: { templateKey: EmailTemplateKey }) {
+  const configs = {
+    warm: {
+      bg: '#f7f5f1',
+      card: '#ffffff',
+      header: '#8a7a55',
+      headerBg: '#ffffff',
+      btn: '#1f2937',
+      text: '#1a1a1a',
+    },
+    clean: {
+      bg: '#f4f4f5',
+      card: '#ffffff',
+      header: '#18181b',
+      headerBg: '#ffffff',
+      btn: '#18181b',
+      text: '#09090b',
+    },
+    dark: {
+      bg: '#0a0a0a',
+      card: '#171717',
+      header: '#a3a3a3',
+      headerBg: '#171717',
+      btn: '#f5f5f5',
+      text: '#fafafa',
+    },
+    brand: {
+      bg: '#f8fafc',
+      card: '#ffffff',
+      header: '#ffffff',
+      headerBg: 'linear-gradient(135deg,#1d4ed8 0%,#7c3aed 100%)',
+      btn: '#1d4ed8',
+      text: '#0f172a',
+    },
+  };
+  const c = configs[templateKey];
+  return (
+    <div
+      className={styles.templatePreview}
+      style={{ background: c.bg }}
+      aria-hidden="true"
+    >
+      <div className={styles.templatePreviewCard} style={{ background: c.card }}>
+        <div
+          className={styles.templatePreviewHeader}
+          style={{ background: c.headerBg, color: c.header }}
+        >
+          OSK
+        </div>
+        <div className={styles.templatePreviewBody} style={{ color: c.text }}>
+          <div className={styles.templatePreviewTitle} />
+          <div className={styles.templatePreviewText} />
+          <div className={styles.templatePreviewText} style={{ width: '75%' }} />
+          <div
+            className={styles.templatePreviewBtn}
+            style={{ background: templateKey === 'brand' ? c.headerBg : c.btn }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

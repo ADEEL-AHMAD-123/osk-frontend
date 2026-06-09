@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppSelector } from '@/store/hooks';
+import { VerifyEmailBanner } from './VerifyEmailBanner';
 import { selectCurrentUser } from '@/features/auth';
 import { cn } from '@/lib/cn';
 import styles from './DashboardShell.module.scss';
@@ -211,7 +212,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             })}
           </nav>
         ) : null}
-        <div className={styles.content}>{children}</div>
+        <div className={styles.content}>
+          <VerifyEmailBanner />
+          {children}
+        </div>
       </div>
     </div>
   );
