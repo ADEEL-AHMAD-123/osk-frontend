@@ -356,7 +356,18 @@ export function EmailManager() {
                 type="checkbox"
                 checked={smtpDraft.secure ?? settings.smtp.secure}
                 onChange={(e) =>
-                  setSmtpDraft((d) => ({ ...d, secure: e.currentTarget.checked }))
+                  setSmtpDraft((d) => ({
+                    ...d,
+                    secure: e.currentTarget.checked,
+                    // Keep port aligned with transport mode to avoid TLS mismatch.
+                    port: e.currentTarget.checked
+                      ? (d.port ?? settings.smtp.port) === 587
+                        ? 465
+                        : (d.port ?? settings.smtp.port)
+                      : (d.port ?? settings.smtp.port) === 465
+                        ? 587
+                        : (d.port ?? settings.smtp.port),
+                  }))
                 }
               />
               <span>Secure (TLS on port 465)</span>
