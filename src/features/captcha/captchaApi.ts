@@ -1,6 +1,7 @@
 import { baseApi } from '@/store/api/baseApi';
 import type {
   ApiSuccess,
+  CaptchaChallenge,
   CaptchaPublicConfig,
   CaptchaSettingsDTO,
   UpdateCaptchaSettingsDto,
@@ -36,6 +37,18 @@ export const captchaApi = baseApi.injectEndpoints({
         { type: 'CaptchaSettings', id: 'PUBLIC' },
       ],
     }),
+
+    /**
+     * Local-captcha challenge — public endpoint that returns a fresh
+     * signed token + an inline SVG to render. We use a mutation rather
+     * than a query so each "Refresh" click triggers a brand-new
+     * server round-trip without RTK Query short-circuiting on a
+     * cached value.
+     */
+    fetchLocalChallenge: build.mutation<CaptchaChallenge, void>({
+      query: () => ({ url: '/captcha/challenge', method: 'GET' }),
+      transformResponse: (r: ApiSuccess<CaptchaChallenge>) => r.data,
+    }),
   }),
   overrideExisting: false,
 });
@@ -44,4 +57,5 @@ export const {
   useGetCaptchaConfigQuery,
   useGetCaptchaSettingsQuery,
   useUpdateCaptchaSettingsMutation,
+  useFetchLocalChallengeMutation,
 } = captchaApi;

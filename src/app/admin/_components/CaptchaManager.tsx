@@ -108,8 +108,9 @@ export function CaptchaManager() {
         </p>
         {!settings.ready ? (
           <p className={styles.muted}>
-            Fill in the site &amp; secret keys below and the captcha switches on for new
-            sign-ups. Until then signup works without a challenge.
+            {effectiveProvider === 'local'
+              ? 'Saving the Local provider activates the built-in text captcha — no keys required.'
+              : 'Fill in the site & secret keys below and the captcha switches on for new sign-ups. Until then signup works without a challenge.'}
           </p>
         ) : null}
       </section>
@@ -119,9 +120,10 @@ export function CaptchaManager() {
         <header className={styles.cardHead}>
           <h2 className={styles.cardTitle}>Provider</h2>
           <p className={styles.cardSub}>
-            Pick <em>Disabled</em> to turn the captcha off temporarily — the site / secret
-            are preserved so you can flip it back on without re-entering them. For
-            Turnstile, grab keys at{' '}
+            Pick <em>Disabled</em> to turn the captcha off — the site / secret keys are
+            preserved so you can flip it back on without re-entering them.{' '}
+            <strong>Built-in text captcha</strong> works out of the box (no keys, no
+            third-party calls). For Turnstile, grab keys at{' '}
             <a
               className={styles.link}
               href="https://dash.cloudflare.com/?to=/:account/turnstile"
@@ -152,41 +154,54 @@ export function CaptchaManager() {
               ))}
             </select>
           </label>
-          <TextField
-            label="Site key"
-            value={effectiveSiteKey}
-            onChange={(e) => {
-              const next = e.target.value;
-              setDraft((d) => ({ ...d, siteKey: next }));
-            }}
-            placeholder="0x4AAAAAAA..."
-            hint="Public — rendered into the signup widget."
-          />
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>
-              Secret key{' '}
-              {secretConfigured ? (
-                <span className={styles.fieldSaved}>· saved ({secretHint})</span>
-              ) : (
-                <span className={styles.fieldEmpty}>· not set</span>
-              )}
-            </span>
-            <input
-              type="password"
-              className={styles.input}
-              placeholder={secretConfigured ? '••••••••' : 'paste secret key'}
-              value={draft.secretKey ?? ''}
-              onChange={(e) => {
-                const next = e.target.value;
-                setDraft((d) => ({ ...d, secretKey: next }));
-              }}
-              autoComplete="off"
-            />
-            <span className={styles.fieldHint}>
-              Encrypted at rest. Leave blank to keep the existing value.
-            </span>
-          </label>
+          {effectiveProvider === 'turnstile' ? (
+            <>
+              <TextField
+                label="Site key"
+                value={effectiveSiteKey}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setDraft((d) => ({ ...d, siteKey: next }));
+                }}
+                placeholder="0x4AAAAAAA..."
+                hint="Public — rendered into the signup widget."
+              />
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>
+                  Secret key{' '}
+                  {secretConfigured ? (
+                    <span className={styles.fieldSaved}>· saved ({secretHint})</span>
+                  ) : (
+                    <span className={styles.fieldEmpty}>· not set</span>
+                  )}
+                </span>
+                <input
+                  type="password"
+                  className={styles.input}
+                  placeholder={secretConfigured ? '••••••••' : 'paste secret key'}
+                  value={draft.secretKey ?? ''}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setDraft((d) => ({ ...d, secretKey: next }));
+                  }}
+                  autoComplete="off"
+                />
+                <span className={styles.fieldHint}>
+                  Encrypted at rest. Leave blank to keep the existing value.
+                </span>
+              </label>
+            </>
+          ) : null}
         </div>
+
+        {effectiveProvider === 'local' ? (
+          <p className={styles.muted}>
+            The built-in text captcha generates a fresh distorted-text challenge for each
+            signup and verifies the answer server-side. No keys needed — just hit Save.
+            Note that this style is easier for OCR bots than Turnstile, so swap to
+            Turnstile if you start seeing spam.
+          </p>
+        ) : null}
 
         <div className={styles.formActions}>
           <Button type="button" onClick={onSave} disabled={saving || !isDirty}>

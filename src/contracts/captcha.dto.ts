@@ -4,13 +4,20 @@
  * settings page.
  */
 
-export const CAPTCHA_PROVIDER_KEYS = ['none', 'turnstile'] as const;
+export const CAPTCHA_PROVIDER_KEYS = ['none', 'turnstile', 'local'] as const;
 export type CaptchaProvider = (typeof CAPTCHA_PROVIDER_KEYS)[number];
 
 export const CAPTCHA_PROVIDER_LABELS: Record<CaptchaProvider, string> = {
   none: 'Disabled (no captcha)',
   turnstile: 'Cloudflare Turnstile',
+  local: 'Built-in text captcha',
 };
+
+/** Payload of GET /captcha/challenge — token + inline SVG markup. */
+export interface CaptchaChallenge {
+  token: string;
+  svg: string;
+}
 
 import type { MaskedSecretField } from './pricing.dto';
 

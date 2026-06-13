@@ -35,6 +35,9 @@ export function SignUpForm() {
   );
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaMissing, setCaptchaMissing] = useState(false);
+  /* Bumped after a failed submit so the LocalCaptcha widget fetches
+   * a fresh challenge — local captcha tokens are single-use. */
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   /* After a successful register we stay on this page and show a
    * "Check your email" panel — we don't push the user to the dashboard
    * because they can't actually sign in until they verify. Holds the
@@ -79,9 +82,10 @@ export function SignUpForm() {
       );
     } catch {
       /* surfaced inline via `errorMessage` below. Reset the captcha
-       * because Turnstile tokens are single-use — the next submit
-       * needs a fresh one. */
+       * because both Turnstile tokens and local-captcha challenges
+       * are single-use — the next submit needs a fresh one. */
       setCaptchaToken('');
+      setCaptchaResetKey((n) => n + 1);
     }
   });
 
@@ -172,6 +176,7 @@ export function SignUpForm() {
       </div>
       {captchaRequired ? (
         <SignupCaptcha
+          resetKey={captchaResetKey}
           onToken={(token) => {
             setCaptchaToken(token);
             if (token) setCaptchaMissing(false);

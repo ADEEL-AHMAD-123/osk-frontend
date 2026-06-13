@@ -5,16 +5,11 @@ import { z } from 'zod';
 import { Button, TextField } from '@/components/ui';
 import { toastPushed } from '@/features/ui';
 import { useAppDispatch } from '@/store/hooks';
+import { SignupCaptcha, useGetCaptchaConfigQuery } from '@/features/captcha';
 import { SITE_CONTACT } from '@/lib/siteContact';
 import styles from './ContactForm.module.scss';
 
-const TOPICS = [
-  'General inquiry',
-  'Sales',
-  'Support',
-  'Press',
-  'Partnerships',
-] as const;
+const TOPICS = ['General inquiry', 'Sales', 'Support', 'Press', 'Partnerships'] as const;
 type Topic = (typeof TOPICS)[number];
 
 const formSchema = z.object({
@@ -46,6 +41,16 @@ export function ContactForm() {
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  /* Captcha state, mirroring the signup form. `captchaRequired` is
+   * derived from the public config — when false, the form behaves
+   * exactly as before. */
+  const { data: captchaConfig } = useGetCaptchaConfigQuery();
+  const captchaRequired = Boolean(
+    captchaConfig?.enabled && captchaConfig.provider !== 'none',
+  );
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaMissing, setCaptchaMissing] = useState(false);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,23 +65,32 @@ export function ContactForm() {
       setErrors(next);
       return;
     }
+    if (captchaRequired && !captchaToken) {
+      setCaptchaMissing(true);
+      return;
+    }
+    setCaptchaMissing(false);
     setErrors({});
     setSubmitting(true);
 
-    // TODO(backend): POST /contact/general once the route ships.
+    // TODO(backend): POST /contact/general once the route ships. The
+    // captchaToken value is already in the right shape (`<token>|<answer>`
+    // for local, opaque string for Turnstile) to forward straight through.
     await new Promise((r) => setTimeout(r, 600));
 
     dispatch(
-      toastPushed(
-        'success',
-        'Thanks — we’ll be in touch within one business day.',
-      ),
+      toastPushed('success', 'Thanks — we’ll be in touch within one business day.'),
     );
     setName('');
     setEmail('');
     setTopic('General inquiry');
     setMessage('');
     setConsent(false);
+    /* Captcha challenges are single-use — refresh after a successful
+     *  submit so the user has a fresh image if they want to send
+     *  another message. */
+    setCaptchaToken('');
+    setCaptchaResetKey((n) => n + 1);
     setSubmitting(false);
   };
 
@@ -142,8 +156,7 @@ export function ContactForm() {
           onChange={(e) => setConsent(e.target.checked)}
         />
         <span>
-          I agree to be contacted about my inquiry. We won’t share your
-          details — see our{' '}
+          I agree to be contacted about my inquiry. We won’t share your details — see our{' '}
           <a href="/privacy" className={styles.consentLink}>
             privacy policy
           </a>
@@ -156,13 +169,31 @@ export function ContactForm() {
         </span>
       ) : null}
 
+      {captchaRequired ? (
+        <SignupCaptcha
+          resetKey={captchaResetKey}
+          onToken={(token) => {
+            setCaptchaToken(token);
+            if (token) setCaptchaMissing(false);
+          }}
+        />
+      ) : null}
+      {captchaMissing ? (
+        <span className={styles.fieldError} role="alert">
+          Please complete the captcha to continue.
+        </span>
+      ) : null}
+
       <div className={styles.actions}>
-        <Button type="submit" size="lg" disabled={submitting}>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={submitting || (captchaRequired && !captchaToken)}
+        >
           {submitting ? 'Sending…' : 'Send message'}
         </Button>
         <p className={styles.foot}>
-          Or email{' '}
-          <a href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}</a>.
+          Or email <a href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}</a>.
         </p>
       </div>
     </form>
