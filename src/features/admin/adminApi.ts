@@ -164,6 +164,22 @@ export const adminApi = baseApi.injectEndpoints({
       ],
     }),
 
+    /** Hard-delete a user and everything they own. Cascades server-side. */
+    deleteAdminUser: build.mutation<{ deleted: true }, string>({
+      query: (id) => ({
+        url: `/admin/users/${id}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (r: ApiSuccess<{ deleted: true }>) => r.data,
+      invalidatesTags: (_r, _e, id) => [
+        { type: 'User', id },
+        { type: 'User', id: 'LIST' },
+        { type: 'AdminOverview', id: 'TOTAL' },
+        { type: 'AuditLog', id: 'FEED' },
+        { type: 'PropertyList', id: 'PARTIAL' },
+      ],
+    }),
+
     /**
      * Mint a session for the target user and overlay it on the current
      * admin session. The admin's existing refresh cookie is preserved
@@ -243,6 +259,7 @@ export const {
   useListAdminPropertiesQuery,
   useListAdminUsersQuery,
   useUpdateAdminUserMutation,
+  useDeleteAdminUserMutation,
   useImpersonateUserMutation,
   useListAdminReviewsQuery,
   useDeleteAdminReviewMutation,

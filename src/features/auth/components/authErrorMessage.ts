@@ -7,10 +7,20 @@ interface RtkErrorShape {
   status?: number | string;
   data?: {
     error?: {
+      code?: string;
       message?: string;
       details?: Array<{ field?: string; message?: string }>;
     };
   };
+}
+
+/** True when the backend bounced login because the email isn't verified.
+ *  The sign-in form uses this to switch to a "Check your inbox + resend"
+ *  panel instead of showing the generic error banner. */
+export function isEmailNotVerifiedError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as RtkErrorShape;
+  return e.data?.error?.code === 'EMAIL_NOT_VERIFIED';
 }
 
 function humanFieldLabel(field: string): string {

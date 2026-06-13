@@ -92,14 +92,23 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     /** Re-issue an email-verification token for the signed-in user. */
-    resendVerification: build.mutation<
-      { sent: true; alreadyVerified: boolean },
-      void
-    >({
+    resendVerification: build.mutation<{ sent: true; alreadyVerified: boolean }, void>({
       query: () => ({ url: '/auth/resend-verification', method: 'POST' }),
-      transformResponse: (
-        r: ApiSuccess<{ sent: true; alreadyVerified: boolean }>,
-      ) => r.data,
+      transformResponse: (r: ApiSuccess<{ sent: true; alreadyVerified: boolean }>) =>
+        r.data,
+    }),
+
+    /** Unauthenticated counterpart — used when a login attempt was
+     *  bounced with EMAIL_NOT_VERIFIED and the user wants a fresh link
+     *  without first establishing a session. Always resolves (no
+     *  enumeration). */
+    resendVerificationPublic: build.mutation<{ sent: true }, { email: string }>({
+      query: (body) => ({
+        url: '/auth/resend-verification-public',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (r: ApiSuccess<{ sent: true }>) => r.data,
     }),
   }),
   overrideExisting: false,
@@ -115,4 +124,5 @@ export const {
   useVerifyEmailMutation,
   useChangePasswordMutation,
   useResendVerificationMutation,
+  useResendVerificationPublicMutation,
 } = authApi;

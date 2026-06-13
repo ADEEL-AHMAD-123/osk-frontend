@@ -228,6 +228,44 @@ const NAV: NavItem[] = [
       </svg>
     ),
   },
+  /* Google sign-in admin tab — commented out for now. Uncomment to
+   * re-enable. Backend routes and admin page remain intact and
+   * reachable via /admin/google directly. */
+  // {
+  //   href: '/admin/google',
+  //   label: 'Google sign-in',
+  //   icon: (
+  //     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+  //       <path d="M21 12..." fill="none" stroke="currentColor" strokeWidth="1.6" />
+  //     </svg>
+  //   ),
+  // },
+  {
+    href: '/admin/captcha',
+    label: 'Captcha',
+    icon: (
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <rect
+          x="4"
+          y="9"
+          width="16"
+          height="11"
+          rx="2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+        <path
+          d="M8 9V7a4 4 0 018 0v2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="14" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+  },
   {
     href: '/admin/audit',
     label: 'Audit log',
