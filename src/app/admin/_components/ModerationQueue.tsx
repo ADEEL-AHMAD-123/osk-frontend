@@ -67,13 +67,38 @@ export function ModerationQueue() {
     );
 
   const onAction = async (listing: PropertySummary, decision: 'approve' | 'reject') => {
+    /* Reject requires a reason — the seller sees it in their
+     * dashboard AND in the rejection email, so we don't accept a
+     * blank submit. Approve has no prompt. */
+    let reason = '';
+    if (decision === 'reject') {
+      const raw =
+        typeof window !== 'undefined'
+          ? window.prompt(
+              `Reason for rejecting "${listing.title}"?\n\nThis goes to the seller via email and shows on their dashboard.`,
+              '',
+            )
+          : null;
+      if (raw === null) return; // cancelled
+      reason = raw.trim();
+      if (reason.length === 0) {
+        dispatch(
+          toastPushed(
+            'error',
+            'A rejection reason is required so the seller knows what to fix.',
+          ),
+        );
+        return;
+      }
+    }
+
     setBusyId(listing.id);
     try {
       if (decision === 'approve') {
         await approve(listing.id).unwrap();
         dispatch(toastPushed('success', `Approved “${listing.title}”.`));
       } else {
-        await reject(listing.id).unwrap();
+        await reject({ id: listing.id, reason }).unwrap();
         dispatch(toastPushed('success', `Rejected “${listing.title}”.`));
       }
     } catch {
@@ -99,6 +124,31 @@ export function ModerationQueue() {
     ) {
       return;
     }
+    /* Bulk reject reuses one reason for every row — admins doing
+     * batch moderation usually have a single broad issue ("missing
+     * required fields", "duplicate listing"). They can still reject
+     * single rows for per-listing detail. */
+    let bulkReason = '';
+    if (decision === 'reject') {
+      const raw =
+        typeof window !== 'undefined'
+          ? window.prompt(
+              `Reason for rejecting all ${ids.length} selected listings?\n\nThis goes to every seller via email.`,
+              '',
+            )
+          : null;
+      if (raw === null) return;
+      bulkReason = raw.trim();
+      if (bulkReason.length === 0) {
+        dispatch(
+          toastPushed(
+            'error',
+            'A rejection reason is required so sellers know what to fix.',
+          ),
+        );
+        return;
+      }
+    }
     setBulkRunning(decision);
     let ok = 0;
     let fail = 0;
@@ -107,7 +157,7 @@ export function ModerationQueue() {
         if (decision === 'approve') {
           await approve(id).unwrap();
         } else {
-          await reject(id).unwrap();
+          await reject({ id, reason: bulkReason }).unwrap();
         }
         ok += 1;
       } catch {

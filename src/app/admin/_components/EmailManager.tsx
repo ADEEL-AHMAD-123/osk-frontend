@@ -2,16 +2,20 @@
 
 import { useState } from 'react';
 import {
+  EMAIL_PREVIEW_LABELS,
+  EMAIL_PREVIEW_TYPES,
   EMAIL_PROVIDER_KEYS,
   EMAIL_PROVIDER_LABELS,
   EMAIL_TEMPLATE_KEYS,
   EMAIL_TEMPLATE_LABELS,
   EMAIL_TEMPLATE_DESCRIPTIONS,
+  type EmailPreviewType,
   type EmailProviderKey,
   type EmailTemplateKey,
 } from '@contracts';
 import {
   useGetEmailSettingsQuery,
+  usePreviewEmailQuery,
   useSendTestEmailMutation,
   useUpdateEmailSettingsMutation,
 } from '@/features/email';
@@ -63,6 +67,7 @@ export function EmailManager() {
   const [resendDraft, setResendDraft] = useState<ResendDraft>({});
   const [smtpDraft, setSmtpDraft] = useState<SmtpDraft>({});
   const [testRecipient, setTestRecipient] = useState<string>('');
+  const [previewType, setPreviewType] = useState<EmailPreviewType>('welcome');
 
   if (isLoading || !settings) {
     return (
@@ -239,8 +244,8 @@ export function EmailManager() {
           <h2 className={styles.cardTitle}>Email template</h2>
           <p className={styles.cardSub}>
             Choose the visual style for all transactional emails (verify-email, password
-            reset, inquiry notifications). The selected template is used immediately —
-            no restart needed.
+            reset, inquiry notifications). The selected template is used immediately — no
+            restart needed.
           </p>
         </header>
         <div className={styles.templateGrid}>
@@ -256,7 +261,9 @@ export function EmailManager() {
             >
               <TemplatePreview templateKey={key} />
               <span className={styles.templateName}>{EMAIL_TEMPLATE_LABELS[key]}</span>
-              <span className={styles.templateDesc}>{EMAIL_TEMPLATE_DESCRIPTIONS[key]}</span>
+              <span className={styles.templateDesc}>
+                {EMAIL_TEMPLATE_DESCRIPTIONS[key]}
+              </span>
               {effectiveTemplate === key ? (
                 <span className={styles.templateBadge}>Active</span>
               ) : null}
@@ -268,10 +275,13 @@ export function EmailManager() {
             type="button"
             size="sm"
             onClick={() => {
-              updateSettings({ activeTemplate: effectiveTemplate }).unwrap().then(() => {
-                dispatch(toastPushed('success', 'Email template saved.'));
-                setActiveTemplate(null);
-              }).catch(() => {});
+              updateSettings({ activeTemplate: effectiveTemplate })
+                .unwrap()
+                .then(() => {
+                  dispatch(toastPushed('success', 'Email template saved.'));
+                  setActiveTemplate(null);
+                })
+                .catch(() => {});
             }}
             disabled={saving || activeTemplate === null}
           >
@@ -279,6 +289,13 @@ export function EmailManager() {
           </Button>
         </div>
       </section>
+
+      {/* ── Live preview ────────────────────────────────────────────── */}
+      <EmailPreviewCard
+        template={effectiveTemplate}
+        type={previewType}
+        onTypeChange={setPreviewType}
+      />
 
       {/* ── Resend credentials ──────────────────────────────────────── */}
       {effectiveProvider === 'resend' ? (
@@ -476,6 +493,74 @@ function SecretField({
   );
 }
 
+/* ─── live preview card ───────────────────────────────────────────── */
+
+function EmailPreviewCard({
+  template,
+  type,
+  onTypeChange,
+}: {
+  template: EmailTemplateKey;
+  type: EmailPreviewType;
+  onTypeChange: (t: EmailPreviewType) => void;
+}) {
+  const { data, isFetching } = usePreviewEmailQuery({ template, type });
+
+  /* The backend returns a full <!doctype html> document. Drop it
+   * into a sandboxed iframe via srcDoc so its CSS doesn't leak into
+   * the admin page (and so the admin sees exactly what a real
+   * client renders). */
+  return (
+    <section className={styles.card}>
+      <header className={styles.cardHead}>
+        <h2 className={styles.cardTitle}>Live preview</h2>
+        <p className={styles.cardSub}>
+          See what each transactional email will look like to your users using the
+          currently selected template. The dropdown switches between every event the
+          platform sends.
+        </p>
+      </header>
+
+      <div className={styles.previewControls}>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Email type</span>
+          <select
+            className={styles.select}
+            value={type}
+            onChange={(e) => onTypeChange(e.currentTarget.value as EmailPreviewType)}
+          >
+            {EMAIL_PREVIEW_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {EMAIL_PREVIEW_LABELS[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {data ? (
+        <p className={styles.previewSubject}>
+          <span className={styles.previewSubjectLabel}>Subject:</span>{' '}
+          <strong>{data.subject}</strong>
+        </p>
+      ) : null}
+
+      <div className={styles.previewFrameWrap}>
+        {isFetching && !data ? (
+          <p className={styles.muted}>Rendering preview…</p>
+        ) : (
+          <iframe
+            title={`Email preview — ${type}`}
+            sandbox=""
+            srcDoc={data?.html ?? ''}
+            className={styles.previewFrame}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* ─── template preview thumbnails ─────────────────────────────────── */
 
 function TemplatePreview({ templateKey }: { templateKey: EmailTemplateKey }) {
@@ -489,9 +574,7 @@ function TemplatePreview({ templateKey }: { templateKey: EmailTemplateKey }) {
   return (
     <div className={`${styles.templatePreview} ${variantClass}`} aria-hidden="true">
       <div className={styles.templatePreviewCard}>
-        <div className={styles.templatePreviewHeader}>
-          OSK
-        </div>
+        <div className={styles.templatePreviewHeader}>OSK</div>
         <div className={styles.templatePreviewBody}>
           <div className={styles.templatePreviewTitle} />
           <div className={styles.templatePreviewText} />

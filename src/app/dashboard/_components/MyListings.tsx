@@ -155,6 +155,11 @@ export function MyListings() {
                     <p className={styles.listingMeta}>
                       {p.locality}, {p.city}
                     </p>
+                    {status === 'rejected' && p.rejectionReason ? (
+                      <p className={styles.rejectionNote}>
+                        <strong>Rejected:</strong> {p.rejectionReason}
+                      </p>
+                    ) : null}
                   </div>
                   <div className={styles.cell}>
                     <span className={styles.cellLabel}>Price</span>

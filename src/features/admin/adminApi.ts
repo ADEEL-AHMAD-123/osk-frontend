@@ -36,10 +36,7 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     /* ── moderation queue ─────────────────────────────────────────────── */
-    listPendingProperties: build.query<
-      Paginated<PropertySummary>,
-      ListParams | void
-    >({
+    listPendingProperties: build.query<Paginated<PropertySummary>, ListParams | void>({
       query: (args) => ({
         url: '/admin/properties/pending',
         params: args ?? undefined,
@@ -75,25 +72,24 @@ export const adminApi = baseApi.injectEndpoints({
       ],
     }),
 
-    rejectPropertyAdmin: build.mutation<Property, string>({
-      query: (id) => ({
+    rejectPropertyAdmin: build.mutation<Property, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({
         url: `/admin/properties/${id}/reject`,
         method: 'POST',
+        body: { reason },
       }),
       transformResponse: (r: ApiSuccess<Property>) => r.data,
-      invalidatesTags: (_r, _e, id) => [
-        { type: 'Property', id },
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'Property', id: arg.id },
         { type: 'PropertyList', id: 'PENDING' },
+        { type: 'PropertyList', id: 'MINE' },
         { type: 'AdminOverview', id: 'TOTAL' },
         { type: 'AuditLog', id: 'FEED' },
       ],
     }),
 
     /** Flip the isFeatured flag on a property. Audit-logged on the server. */
-    setPropertyFeatured: build.mutation<
-      Property,
-      { id: string; isFeatured: boolean }
-    >({
+    setPropertyFeatured: build.mutation<Property, { id: string; isFeatured: boolean }>({
       query: ({ id, isFeatured }) => ({
         url: `/admin/properties/${id}/featured`,
         method: 'PATCH',

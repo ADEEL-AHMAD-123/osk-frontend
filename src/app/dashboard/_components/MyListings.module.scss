@@ -104,7 +104,6 @@
   padding: space('3') space('5');
   background: var(--bg-inset);
   border-block-end: 1px solid var(--divider);
-
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -134,7 +133,9 @@
   padding: space('4') space('5');
   border-block-end: 1px solid var(--divider);
 
-  &:last-child { border-block-end: 0; }
+  &:last-child {
+    border-block-end: 0;
+  }
 
   @include respond('md') {
     grid-template-columns: 2.4fr 1fr 1fr 1fr auto;
@@ -212,6 +213,24 @@
   color: var(--text-muted);
 }
 
+/* Rejection feedback inline on rejected rows — keeps the seller
+ * looking at the same row instead of hunting for an email. */
+.rejectionNote {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-left: 3px solid var(--color-danger);
+  border-radius: radius('sm');
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  max-inline-size: 60ch;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
 .price {
   font-family: $font-display;
   font-weight: 600;
@@ -224,7 +243,9 @@
   color: var(--color-primary);
   text-decoration: none;
 
-  &:hover { color: var(--color-primary-hover); }
+  &:hover {
+    color: var(--color-primary-hover);
+  }
 }
 
 /* Prominent pay CTA used on `awaiting-payment` rows. */

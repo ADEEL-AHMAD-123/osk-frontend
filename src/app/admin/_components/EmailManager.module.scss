@@ -210,6 +210,50 @@
   flex-wrap: wrap;
 }
 
+/* ─── live preview pane ─────────────────────────────────────────── */
+
+.previewControls {
+  display: flex;
+  flex-direction: column;
+  gap: space('3');
+  max-inline-size: 22rem;
+}
+
+.previewSubject {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
+.previewSubjectLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.previewFrameWrap {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: radius('md');
+  overflow: hidden;
+  min-block-size: 26rem;
+}
+
+.previewFrame {
+  display: block;
+  inline-size: 100%;
+  block-size: 32rem;
+  border: 0;
+  background: var(--bg-card);
+}
+
 /* ─── email template selector ───────────────────────────────────────── */
 
 .templateGrid {
@@ -230,7 +274,9 @@
   border-radius: radius('lg');
   cursor: pointer;
   text-align: left;
-  transition: border-color 120ms, box-shadow 120ms;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
   position: relative;
 
   &:hover {
@@ -317,7 +363,7 @@
 
 .templatePreviewTitle {
   height: 5px;
-  background: currentColor;
+  background: currentcolor;
   opacity: 0.4;
   border-radius: 2px;
   width: 80%;
@@ -325,7 +371,7 @@
 
 .templatePreviewText {
   height: 3px;
-  background: currentColor;
+  background: currentcolor;
   opacity: 0.2;
   border-radius: 2px;
 }
