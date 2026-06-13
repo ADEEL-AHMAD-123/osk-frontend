@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   THEMES,
   type SiteSettingsLegal,
@@ -12,6 +13,7 @@ import {
   useGetSiteSettingsQuery,
   useUpdateSiteSettingsMutation,
 } from '@/features/settings';
+import { revalidateSiteSettings } from '@/features/settings/actions';
 import { Button, MediaUploader, TextField } from '@/components/ui';
 import type { UploadedMedia } from '@/components/ui';
 import { resolveMediaUrl } from '@/lib/mediaUrl';
@@ -101,6 +103,7 @@ function fromSettings(s: SiteSettings): FormState {
 
 export function SettingsManager() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { data, isLoading, isError } = useGetSiteSettingsQuery();
   const [saveSettings, { isLoading: saving }] = useUpdateSiteSettingsMutation();
   const [form, setForm] = useState<FormState | null>(null);
@@ -176,6 +179,24 @@ export function SettingsManager() {
       const next = fromSettings(saved);
       setForm(next);
       setInitialForm(next);
+      /* Burn Next's data cache for the /settings endpoint so the
+       * Footer (RSC) and any other server-rendered consumer pull
+       * the fresh contact details. Belt-and-suspenders:
+       *  1) revalidateTag('site-settings') marks the cached fetch
+       *     as stale so the NEXT render hits the API again.
+       *  2) revalidatePath('/', 'layout') invalidates every nested
+       *     route's RSC tree.
+       *  3) router.refresh() forces THIS tab to re-render its
+       *     server components in place, so the Footer updates
+       *     without the admin needing to navigate or hard-refresh.
+       * Fire-and-forget; if the action throws the toast still says
+       * success because the write already landed in Mongo. */
+      try {
+        await revalidateSiteSettings();
+      } catch {
+        /* non-fatal */
+      }
+      router.refresh();
       dispatch(toastPushed('success', 'Settings saved — site updated.'));
     } catch {
       /* surfaced by the global toast handles the error envelope */
@@ -351,7 +372,7 @@ export function SettingsManager() {
                   label="Phone (display)"
                   value={form.phoneDisplay}
                   onChange={(e) => setField('phoneDisplay', e.target.value)}
-                  hint="What humans see — e.g. +1 (365) 955-7829"
+                  hint="What humans see — e.g. +1 (555) 123-4567"
                   required
                 />
               </div>
@@ -359,7 +380,7 @@ export function SettingsManager() {
                 label="Phone (tel: link)"
                 value={form.phoneTel}
                 onChange={(e) => setField('phoneTel', e.target.value)}
-                hint="Digits and a leading + only — e.g. +13659557829"
+                hint="Digits and a leading + only — e.g. +15551234567"
                 required
               />
 

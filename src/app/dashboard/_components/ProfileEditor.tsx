@@ -275,7 +275,8 @@ export function ProfileEditor() {
                   </p>
                   {me && !me.emailVerified ? (
                     <p className={styles.completionTextWarning}>
-                      ⚠ Your email is not yet verified — check the banner above to resend the link.
+                      ⚠ Your email is not yet verified — check the banner above to resend
+                      the link.
                     </p>
                   ) : null}
                 </>
@@ -311,7 +312,7 @@ export function ProfileEditor() {
                 <TextField
                   label="Phone"
                   autoComplete="tel"
-                  placeholder="+1 365 955 7829"
+                  placeholder="+1 555 123 4567"
                   required
                   {...register('phone')}
                   error={errors.phone?.message}
@@ -364,7 +365,7 @@ export function ProfileEditor() {
               <TextField
                 label="Address"
                 autoComplete="street-address"
-                placeholder="101 Catherine Street, 6th Floor"
+                placeholder="123 Main Street"
                 required
                 {...register('address')}
                 error={errors.address?.message}

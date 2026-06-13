@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import type { SiteSettings } from '@contracts';
 import { Button } from '@/components/ui';
+import { FETCH_TAGS, serverFetch } from '@/lib/serverApi';
 import styles from '../_marketing.module.scss';
 
 export const metadata: Metadata = {
-  title: 'About OSK',
-  description: 'Real estate, curated. The story, values, and people behind OSK.',
+  title: 'About',
+  description: 'The story, values, and people behind the platform.',
 };
 
 const VALUES = [
@@ -23,14 +25,25 @@ const VALUES = [
   },
 ];
 
-const STATS = [
-  { value: '12,400+', label: 'Curated listings' },
-  { value: '850+', label: 'Verified agents' },
-  { value: '40+', label: 'U.S. markets' },
-  { value: '$4.2B', label: 'Closed last year' },
+/* Generic fallback stats, used only when the admin hasn't filled in
+ * the four homeStats slots under /admin/settings. */
+const FALLBACK_STATS = [
+  { value: '—', label: 'Curated listings' },
+  { value: '—', label: 'Verified agents' },
+  { value: '—', label: 'Active markets' },
+  { value: '—', label: 'Closed last year' },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const settings = await serverFetch<SiteSettings>('/settings', 60, [
+    FETCH_TAGS.siteSettings,
+  ]);
+  const companyName = settings?.companyName?.trim() || 'us';
+  const stats =
+    settings?.homeStats && settings.homeStats.length === 4
+      ? settings.homeStats
+      : FALLBACK_STATS;
+
   return (
     <section className={styles.page}>
       <div className={styles.bg} aria-hidden="true">
@@ -41,13 +54,13 @@ export default function AboutPage() {
       <header className={styles.header}>
         <p className={styles.eyebrow}>
           <span className={styles.eyebrowDot} aria-hidden="true" />
-          About OSK
+          About {companyName}
         </p>
         <h1 className={styles.title}>
           A better way to <em>find a home.</em>
         </h1>
         <p className={styles.lede}>
-          OSK is a curated real-estate platform for the U.S. We bring together owners,
+          {companyName} is a curated real-estate platform. We bring together owners,
           verified agents and serious buyers — and we keep the experience quiet, honest,
           and direct.
         </p>
@@ -55,7 +68,7 @@ export default function AboutPage() {
 
       <div className={styles.body}>
         <dl className={styles.stats}>
-          {STATS.map((stat) => (
+          {stats.map((stat) => (
             <div key={stat.label} className={styles.stat}>
               <dt className={styles.statValue}>{stat.value}</dt>
               <dd className={styles.statLabel}>{stat.label}</dd>
@@ -90,7 +103,7 @@ export default function AboutPage() {
 
         <div className={styles.cta}>
           <div className={styles.ctaCopy}>
-            <h2 className={styles.ctaTitle}>List a property with OSK</h2>
+            <h2 className={styles.ctaTitle}>List a property with {companyName}</h2>
             <p className={styles.ctaSub}>
               Reach serious buyers — and stay in control of how people contact you.
             </p>
