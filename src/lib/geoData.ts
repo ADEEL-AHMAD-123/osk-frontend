@@ -48,12 +48,46 @@ export interface CityOption {
  * For the common currencies we hand-map a symbol — for everything else
  * the code itself is the display ("ZAR", "AED" …). */
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$',  CAD: 'CA$', AUD: 'A$', NZD: 'NZ$', SGD: 'S$',  HKD: 'HK$', MXN: 'MX$',
-  EUR: '€',  GBP: '£',  JPY: '¥',  CNY: '¥',   INR: '₹',   AED: 'د.إ', SAR: '﷼',
-  CHF: 'Fr', SEK: 'kr', NOK: 'kr', DKK: 'kr',  RUB: '₽',   TRY: '₺',   ZAR: 'R',
-  BRL: 'R$', KRW: '₩',  THB: '฿',  PHP: '₱',   IDR: 'Rp',  MYR: 'RM',  PKR: '₨',
-  BDT: '৳',  LKR: 'Rs', NGN: '₦',  EGP: '£',   ARS: '$',   CLP: '$',   COP: '$',
-  PLN: 'zł', CZK: 'Kč', HUF: 'Ft', RON: 'lei', ILS: '₪',
+  USD: '$',
+  CAD: 'CA$',
+  AUD: 'A$',
+  NZD: 'NZ$',
+  SGD: 'S$',
+  HKD: 'HK$',
+  MXN: 'MX$',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥',
+  CNY: '¥',
+  INR: '₹',
+  AED: 'د.إ',
+  SAR: '﷼',
+  CHF: 'Fr',
+  SEK: 'kr',
+  NOK: 'kr',
+  DKK: 'kr',
+  RUB: '₽',
+  TRY: '₺',
+  ZAR: 'R',
+  BRL: 'R$',
+  KRW: '₩',
+  THB: '฿',
+  PHP: '₱',
+  IDR: 'Rp',
+  MYR: 'RM',
+  PKR: '₨',
+  BDT: '৳',
+  LKR: 'Rs',
+  NGN: '₦',
+  EGP: '£',
+  ARS: '$',
+  CLP: '$',
+  COP: '$',
+  PLN: 'zł',
+  CZK: 'Kč',
+  HUF: 'Ft',
+  RON: 'lei',
+  ILS: '₪',
 };
 
 function symbolFor(code: string): string {
@@ -89,19 +123,24 @@ export function getCountries(): CountryOption[] {
   return _countries;
 }
 
-/** Lookup by ISO2 — returns undefined for unknown codes. */
-export function getCountry(iso2: string): CountryOption | undefined {
+/** Lookup by ISO2 — returns undefined for empty / unknown codes.
+ *  Accepts undefined / null defensively so callers handling legacy
+ *  data (saved listings persisted in localStorage before we added the
+ *  `country` field) don't crash on `iso2.toUpperCase()`. */
+export function getCountry(iso2: string | null | undefined): CountryOption | undefined {
+  if (!iso2 || typeof iso2 !== 'string') return undefined;
   const code = iso2.toUpperCase();
+  if (!code) return undefined;
   return getCountries().find((c) => c.iso2 === code);
 }
 
 /** Currency for a country, e.g. 'US' → 'USD'. Falls back to 'USD'. */
-export function currencyForCountry(iso2: string): string {
+export function currencyForCountry(iso2: string | null | undefined): string {
   return getCountry(iso2)?.currency ?? 'USD';
 }
 
 /** Symbol for a country's currency, e.g. 'US' → '$'. */
-export function currencySymbolForCountry(iso2: string): string {
+export function currencySymbolForCountry(iso2: string | null | undefined): string {
   return getCountry(iso2)?.symbol ?? '$';
 }
 
@@ -116,9 +155,10 @@ const _citiesByCountry = new Map<string, CityOption[]>();
  * (~150k rows total) — we lazy-load per-country and cache so the first
  * read of each country pays the cost once.
  */
-export function getCitiesByCountry(iso2: string): CityOption[] {
-  if (!iso2) return [];
+export function getCitiesByCountry(iso2: string | null | undefined): CityOption[] {
+  if (!iso2 || typeof iso2 !== 'string') return [];
   const code = iso2.toUpperCase();
+  if (!code) return [];
   const cached = _citiesByCountry.get(code);
   if (cached) return cached;
   const raw = City.getCitiesOfCountry(code) ?? [];
@@ -155,9 +195,7 @@ export function findCity(iso2: string, name: string): CityOption | undefined {
   if (!iso2 || !name) return undefined;
   const target = name.trim().toLowerCase();
   if (!target) return undefined;
-  return getCitiesByCountry(iso2).find(
-    (c) => c.name.toLowerCase() === target,
-  );
+  return getCitiesByCountry(iso2).find((c) => c.name.toLowerCase() === target);
 }
 
 /**
@@ -165,11 +203,7 @@ export function findCity(iso2: string, name: string): CityOption | undefined {
  * matches with a "starts-with" preference so the most relevant items
  * surface first. Case-insensitive.
  */
-export function searchCities(
-  iso2: string,
-  query: string,
-  limit = 50,
-): CityOption[] {
+export function searchCities(iso2: string, query: string, limit = 50): CityOption[] {
   const all = getCitiesByCountry(iso2);
   if (!query.trim()) return all.slice(0, limit);
   const q = query.toLowerCase();
