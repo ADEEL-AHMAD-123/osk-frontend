@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -9,6 +10,7 @@ import { Button, TextField } from '@/components/ui';
 import { toastPushed } from '@/features/ui';
 import { useAppDispatch } from '@/store/hooks';
 import { GoogleSignInButton } from '@/features/googleAuth';
+import { SignupCaptcha, useGetCaptchaConfigQuery } from '@/features/captcha';
 import { useLoginMutation, useResendVerificationPublicMutation } from '../authApi';
 import { AuthErrorBanner } from './AuthErrorBanner';
 import { getAuthErrorMessage, isEmailNotVerifiedError } from './authErrorMessage';
@@ -26,6 +28,16 @@ export function SignInForm() {
   const needsVerification = isEmailNotVerifiedError(serverError);
   const errorMessage =
     serverError && !needsVerification ? getAuthErrorMessage(serverError) : null;
+  /* Captcha state — mirrors signup. `captchaRequired` is derived
+   * from the public config so this form is a no-op when captcha is
+   * disabled. */
+  const { data: captchaConfig } = useGetCaptchaConfigQuery();
+  const captchaRequired = Boolean(
+    captchaConfig?.enabled && captchaConfig.provider !== 'none',
+  );
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaMissing, setCaptchaMissing] = useState(false);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const {
     register,
@@ -38,12 +50,25 @@ export function SignInForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
+    if (captchaRequired && !captchaToken) {
+      setCaptchaMissing(true);
+      return;
+    }
+    setCaptchaMissing(false);
     try {
-      await login(values).unwrap();
+      await login({
+        ...values,
+        captchaToken: captchaRequired ? captchaToken : undefined,
+      }).unwrap();
       dispatch(toastPushed('success', 'Welcome back.'));
       router.push(searchParams.get('next') || '/dashboard');
     } catch {
-      /* surfaced inline via `errorMessage` / `needsVerification` below */
+      /* surfaced inline via `errorMessage` / `needsVerification` below.
+       * Reset the captcha — both Turnstile tokens and local-captcha
+       * challenges are single-use, so the next submit needs a fresh
+       * one. */
+      setCaptchaToken('');
+      setCaptchaResetKey((n) => n + 1);
     }
   });
 
@@ -107,7 +132,23 @@ export function SignInForm() {
       <Link href="/forgot-password" className={styles.inlineLink}>
         Forgot password?
       </Link>
-      <Button type="submit" fullWidth disabled={isLoading}>
+      {captchaRequired ? (
+        <SignupCaptcha
+          resetKey={captchaResetKey}
+          onToken={(token) => {
+            setCaptchaToken(token);
+            if (token) setCaptchaMissing(false);
+          }}
+        />
+      ) : null}
+      {captchaMissing ? (
+        <AuthErrorBanner message="Please complete the captcha to continue." />
+      ) : null}
+      <Button
+        type="submit"
+        fullWidth
+        disabled={isLoading || (captchaRequired && !captchaToken)}
+      >
         {isLoading ? 'Signing in…' : 'Sign in'}
       </Button>
       <p className={styles.alt}>

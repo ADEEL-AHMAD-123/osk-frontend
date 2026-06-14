@@ -29,11 +29,7 @@
   inset-inline-start: -15%;
   inline-size: 55%;
   block-size: 55%;
-  background: radial-gradient(
-    closest-side,
-    var(--color-primary-soft),
-    transparent 70%
-  );
+  background: radial-gradient(closest-side, var(--color-primary-soft), transparent 70%);
 }
 
 .bloomB {
@@ -42,11 +38,7 @@
   inset-inline-end: -15%;
   inline-size: 50%;
   block-size: 50%;
-  background: radial-gradient(
-    closest-side,
-    var(--bg-inset),
-    transparent 70%
-  );
+  background: radial-gradient(closest-side, var(--bg-inset), transparent 70%);
 }
 
 /* ─── header ─────────────────────────────────────────────────────────── */
@@ -97,14 +89,14 @@
 
   em {
     font-style: italic;
-    background: linear-gradient(
-      90deg,
-      var(--color-primary) 0%,
-      var(--color-accent) 100%
-    );
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    /* stylelint-disable property-no-vendor-prefix --
+         Safari still needs the prefixed variants for both
+         background-clip + text-fill-color to render gradient text. */
     -webkit-background-clip: text;
-    background-clip: text;
     -webkit-text-fill-color: transparent;
+    /* stylelint-enable property-no-vendor-prefix */
+    background-clip: text;
     color: transparent;
   }
 }
@@ -279,6 +271,40 @@
   color: var(--text-secondary);
 }
 
+/* ─── process steps (e.g. /about "how it works") ─────────────────────
+ *  Same card visual as `.cards`, but a 4-up grid on wide screens to
+ *  keep step rows manageable. Each step uses `.stepBadge` for the
+ *  numeric pill in the icon slot. */
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space('4');
+
+  @include respond('md') {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include respond('lg') {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.stepBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: radius('pill');
+  background: var(--color-accent-soft, var(--color-primary-soft));
+  color: var(--color-accent, var(--color-primary));
+  font-family: $font-display;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.04em;
+  margin-block-end: space('2');
+}
+
 /* ─── CTA strip ──────────────────────────────────────────────────────── */
 .cta {
   display: flex;
@@ -296,14 +322,9 @@
     content: '';
     position: absolute;
     inset-block-start: 0;
-    inset-inline-start: space('5');
-    inset-inline-end: space('5');
+    inset-inline: space('5');
     block-size: 3px;
-    background: linear-gradient(
-      90deg,
-      var(--color-accent),
-      transparent
-    );
+    background: linear-gradient(90deg, var(--color-accent), transparent);
   }
 
   @include respond('md') {
