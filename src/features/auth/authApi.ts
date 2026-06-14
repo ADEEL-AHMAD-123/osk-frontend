@@ -74,6 +74,18 @@ export const authApi = baseApi.injectEndpoints({
     verifyEmail: build.mutation<{ verified: boolean }, { token: string }>({
       query: (body) => ({ url: '/auth/verify-email', method: 'POST', body }),
       transformResponse: (r: ApiSuccess<{ verified: boolean }>) => r.data,
+      /* On success, force the session query to re-run so the auth
+       * slice picks up the new `emailVerified: true` flag — otherwise
+       * the dashboard's "verify your email" banner stays visible
+       * until the next page navigation. */
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(authApi.endpoints.session.initiate(undefined, { forceRefetch: true }));
+        } catch {
+          /* surfaced by the caller */
+        }
+      },
     }),
 
     /** Change password while signed in — server rotates the refresh family

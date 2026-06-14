@@ -12,11 +12,11 @@ import { cn } from '@/lib/cn';
 import styles from './Header.module.scss';
 
 const NAV_LINKS = [
-  { href: '/buy',           label: 'Buy' },
-  { href: '/rent',          label: 'Rent' },
-  { href: '/new-projects',  label: 'New Projects' },
-  { href: '/commercial',    label: 'Commercial' },
-  { href: '/plots',         label: 'Plots & Land' },
+  { href: '/buy', label: 'Buy' },
+  { href: '/rent', label: 'Rent' },
+  { href: '/new-projects', label: 'New Projects' },
+  { href: '/commercial', label: 'Commercial' },
+  { href: '/plots', label: 'Plots & Land' },
 ];
 
 /**
@@ -52,17 +52,12 @@ export function Header() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <header className={cn(styles.header, open && styles.headerOpen)}>
       <div className={styles.inner}>
-        <Link
-          href="/"
-          className={styles.brand}
-          aria-label={`${companyName} home`}
-        >
+        <Link href="/" className={styles.brand} aria-label={`${companyName} home`}>
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -106,18 +101,24 @@ export function Header() {
           <HeaderAuth />
         </div>
 
-        <button
-          type="button"
-          className={cn(styles.ham, open && styles.hamOpen)}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-          aria-controls="primary-mobile-nav"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
+        {/* Mobile-only bell + hamburger pair. The bell sits OUTSIDE
+         *  `.actions` (which is desktop-only) so signed-in users can
+         *  glance at their unread count without opening the drawer. */}
+        <div className={styles.mobileActions}>
+          <NotificationsBell />
+          <button
+            type="button"
+            className={cn(styles.ham, open && styles.hamOpen)}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            aria-controls="primary-mobile-nav"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+        </div>
       </div>
 
       <div
@@ -131,10 +132,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className={cn(
-                styles.drawerLink,
-                active && styles.drawerLinkActive,
-              )}
+              className={cn(styles.drawerLink, active && styles.drawerLinkActive)}
               aria-current={active ? 'page' : undefined}
               tabIndex={open ? 0 : -1}
               onClick={() => setOpen(false)}
