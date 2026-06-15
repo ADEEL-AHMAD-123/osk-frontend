@@ -55,6 +55,20 @@ export interface SiteSettingsAboutItem {
   body: string;
 }
 
+/** A trusted-partner tile on the home page. */
+export interface SiteSettingsPartnerItem {
+  name: string;
+  role: string;
+}
+
+/** Editable copy for the home page "Trusted partners" strip. */
+export interface SiteSettingsPartners {
+  eyebrow: string;
+  title: string;
+  sub: string;
+  items: SiteSettingsPartnerItem[];
+}
+
 /** Editable copy for the About page. Every visible string lives
  *  here so admins can rewrite the marketing without a deploy. */
 export interface SiteSettingsAbout {
@@ -92,6 +106,7 @@ export interface SiteSettings {
   homeStats: SiteSettingsStat[];
   legal: SiteSettingsLegal;
   about: SiteSettingsAbout;
+  partners: SiteSettingsPartners;
   updatedAt: string;
 }
 
@@ -118,5 +133,11 @@ export type SiteSettingsPatch = Partial<{
       items?: SiteSettingsAboutItem[];
     };
     cta?: Partial<SiteSettingsAbout['cta']>;
+  };
+  partners: {
+    eyebrow?: string;
+    title?: string;
+    sub?: string;
+    items?: SiteSettingsPartnerItem[];
   };
 }>;

@@ -26,6 +26,7 @@ export const API_TAGS = [
   'CaptchaSettings',
   'GoogleAuthSettings',
   'ContactMessage',
+  'NewsletterSubscriber',
 ] as const;
 
 export type ApiTag = (typeof API_TAGS)[number];

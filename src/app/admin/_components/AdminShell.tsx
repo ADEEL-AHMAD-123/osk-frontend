@@ -219,6 +219,29 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    href: '/admin/subscribers',
+    label: 'Subscribers',
+    icon: (
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path
+          d="M3 7h18M3 12h18M3 17h12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+        <circle
+          cx="20"
+          cy="17"
+          r="2.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+        />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/email',
     label: 'Email',
     icon: (

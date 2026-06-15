@@ -8,6 +8,8 @@ import {
   type SiteSettingsAboutItem,
   type SiteSettingsLegal,
   type SiteSettings,
+  type SiteSettingsPartners,
+  type SiteSettingsPartnerItem,
   type SiteSettingsStat,
   type ThemeName,
 } from '@contracts';
@@ -55,15 +57,23 @@ interface FormState {
   privacyUpdatedAt: string;
   termsUpdatedAt: string;
   about: SiteSettingsAbout;
+  partners: SiteSettingsPartners;
 }
 
-type SettingsTab = 'general' | 'legal' | 'about';
+type SettingsTab = 'general' | 'legal' | 'about' | 'home';
 
 const EMPTY_ABOUT: SiteSettingsAbout = {
   header: { eyebrow: '', titlePrefix: '', titleEmphasis: '', lede: '' },
   values: { eyebrow: '', title: '', items: [] },
   process: { eyebrow: '', title: '', items: [] },
   cta: { title: '', body: '' },
+};
+
+const EMPTY_PARTNERS: SiteSettingsPartners = {
+  eyebrow: '',
+  title: '',
+  sub: '',
+  items: [],
 };
 
 const DEFAULT_HOME_STATS: SiteSettingsStat[] = [
@@ -109,6 +119,7 @@ function fromSettings(s: SiteSettings): FormState {
     privacyUpdatedAt: s.legal?.privacyUpdatedAt ?? DEFAULT_LEGAL.privacyUpdatedAt,
     termsUpdatedAt: s.legal?.termsUpdatedAt ?? DEFAULT_LEGAL.termsUpdatedAt,
     about: s.about ?? EMPTY_ABOUT,
+    partners: s.partners ?? EMPTY_PARTNERS,
   };
 }
 
@@ -213,6 +224,43 @@ export function SettingsManager() {
     });
   };
 
+  /* ─── Home-tab helpers (partners) ──────────────────────────────── */
+  const setPartnerText = (key: 'eyebrow' | 'title' | 'sub', value: string) => {
+    setForm((prev) =>
+      prev ? { ...prev, partners: { ...prev.partners, [key]: value } } : prev,
+    );
+  };
+
+  const setPartnerItem = (
+    index: number,
+    key: keyof SiteSettingsPartnerItem,
+    value: string,
+  ) => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      const items = prev.partners.items.map((it, i) =>
+        i === index ? { ...it, [key]: value } : it,
+      );
+      return { ...prev, partners: { ...prev.partners, items } };
+    });
+  };
+
+  const addPartnerItem = () => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      const items = [...prev.partners.items, { name: '', role: '' }];
+      return { ...prev, partners: { ...prev.partners, items } };
+    });
+  };
+
+  const removePartnerItem = (index: number) => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      const items = prev.partners.items.filter((_, i) => i !== index);
+      return { ...prev, partners: { ...prev.partners, items } };
+    });
+  };
+
   const onLogoUploaded = (uploaded: UploadedMedia[]) => {
     const first = uploaded[0];
     if (!first) return;
@@ -255,6 +303,7 @@ export function SettingsManager() {
           termsUpdatedAt: form.termsUpdatedAt.trim(),
         },
         about: form.about,
+        partners: form.partners,
       }).unwrap();
       const next = fromSettings(saved);
       setForm(next);
@@ -344,6 +393,15 @@ export function SettingsManager() {
           onClick={() => setActiveTab('about')}
         >
           About page
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'home'}
+          className={cn(styles.tab, activeTab === 'home' && styles.tabActive)}
+          onClick={() => setActiveTab('home')}
+        >
+          Home page
         </button>
       </div>
 
@@ -619,7 +677,7 @@ export function SettingsManager() {
               />
             </label>
           </div>
-        ) : (
+        ) : activeTab === 'about' ? (
           /* ── About page ───────────────────────────────────────────── */
           <>
             <div className={styles.section}>
@@ -751,7 +809,84 @@ export function SettingsManager() {
               </label>
             </div>
           </>
-        )}
+        ) : activeTab === 'home' ? (
+          <>
+            {/* Home page tab. Currently scopes to the "Trusted
+                partners" strip. Other home-page sections (Hero,
+                CityShowcase, etc.) can layer into this tab later. */}
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>Trusted partners</h2>
+              <p className={styles.sectionHint}>
+                The partner strip on the home page. Add as many partners as you want —
+                they render in order.
+              </p>
+              <div className={styles.grid2}>
+                <TextField
+                  label="Eyebrow"
+                  value={form.partners.eyebrow}
+                  maxLength={80}
+                  placeholder="Trusted partners"
+                  onChange={(e) => setPartnerText('eyebrow', e.target.value)}
+                />
+                <TextField
+                  label="Heading"
+                  value={form.partners.title}
+                  maxLength={160}
+                  placeholder="A network you can close with."
+                  onChange={(e) => setPartnerText('title', e.target.value)}
+                />
+              </div>
+              <label className={styles.textareaField}>
+                <span className={styles.fieldLabel}>Sub-paragraph</span>
+                <textarea
+                  className={styles.textarea}
+                  rows={3}
+                  value={form.partners.sub}
+                  onChange={(e) => setPartnerText('sub', e.target.value)}
+                  maxLength={1000}
+                />
+              </label>
+
+              <div className={styles.repeaterList}>
+                {form.partners.items.map((item, i) => (
+                  <div key={i} className={styles.repeaterRow}>
+                    <div className={styles.repeaterIndex} aria-hidden="true">
+                      {String(i + 1).padStart(2, '0')}
+                    </div>
+                    <div className={styles.repeaterFields}>
+                      <TextField
+                        label="Partner name"
+                        value={item.name}
+                        maxLength={120}
+                        placeholder="Atlas Mortgage"
+                        onChange={(e) => setPartnerItem(i, 'name', e.target.value)}
+                      />
+                      <TextField
+                        label="Role"
+                        value={item.role}
+                        maxLength={160}
+                        placeholder="Mortgage broker"
+                        onChange={(e) => setPartnerItem(i, 'role', e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.repeaterRemove}
+                      onClick={() => removePartnerItem(i)}
+                      aria-label={`Remove partner ${i + 1}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <Button type="button" variant="secondary" onClick={addPartnerItem}>
+                + Add partner
+              </Button>
+            </div>
+          </>
+        ) : null}
 
         <div className={styles.actions}>
           <Button type="submit" size="lg" disabled={saving || !hasChanges}>
