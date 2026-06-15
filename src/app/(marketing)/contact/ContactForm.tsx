@@ -6,6 +6,7 @@ import { Button, TextField } from '@/components/ui';
 import { toastPushed } from '@/features/ui';
 import { useAppDispatch } from '@/store/hooks';
 import { SignupCaptcha, useGetCaptchaConfigQuery } from '@/features/captcha';
+import { useSubmitContactGeneralMutation } from '@/features/contact';
 import { SITE_CONTACT } from '@/lib/siteContact';
 import styles from './ContactForm.module.scss';
 
@@ -34,13 +35,13 @@ type FieldErrors = Partial<Record<keyof z.infer<typeof formSchema>, string>>;
  */
 export function ContactForm() {
   const dispatch = useAppDispatch();
+  const [submitContact, { isLoading: submitting }] = useSubmitContactGeneralMutation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [topic, setTopic] = useState<Topic>('General inquiry');
   const [message, setMessage] = useState('');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [submitting, setSubmitting] = useState(false);
   /* Captcha state, mirroring the signup form. `captchaRequired` is
    * derived from the public config — when false, the form behaves
    * exactly as before. */
@@ -71,27 +72,41 @@ export function ContactForm() {
     }
     setCaptchaMissing(false);
     setErrors({});
-    setSubmitting(true);
 
-    // TODO(backend): POST /contact/general once the route ships. The
-    // captchaToken value is already in the right shape (`<token>|<answer>`
-    // for local, opaque string for Turnstile) to forward straight through.
-    await new Promise((r) => setTimeout(r, 600));
+    try {
+      await submitContact({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        topic: parsed.data.topic,
+        message: parsed.data.message,
+        consent: true,
+        /* When captcha is disabled the backend short-circuits on
+         * provider='none'; we still send a non-empty token so the
+         * Zod schema doesn't bounce the request before it gets
+         * to the captcha gate. */
+        captchaToken: captchaRequired ? captchaToken : 'disabled',
+      }).unwrap();
 
-    dispatch(
-      toastPushed('success', 'Thanks — we’ll be in touch within one business day.'),
-    );
-    setName('');
-    setEmail('');
-    setTopic('General inquiry');
-    setMessage('');
-    setConsent(false);
-    /* Captcha challenges are single-use — refresh after a successful
-     *  submit so the user has a fresh image if they want to send
-     *  another message. */
-    setCaptchaToken('');
-    setCaptchaResetKey((n) => n + 1);
-    setSubmitting(false);
+      dispatch(
+        toastPushed('success', 'Thanks — we’ll be in touch within one business day.'),
+      );
+      setName('');
+      setEmail('');
+      setTopic('General inquiry');
+      setMessage('');
+      setConsent(false);
+      /* Captcha challenges are single-use — refresh after a successful
+       *  submit so the user has a fresh image if they want to send
+       *  another message. */
+      setCaptchaToken('');
+      setCaptchaResetKey((n) => n + 1);
+    } catch {
+      /* Surfaced by the global error toast. Reset the captcha so the
+       * next attempt has a fresh challenge — both Turnstile tokens
+       * and local-captcha answers are single-use server-side. */
+      setCaptchaToken('');
+      setCaptchaResetKey((n) => n + 1);
+    }
   };
 
   return (

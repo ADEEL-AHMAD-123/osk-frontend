@@ -3,8 +3,13 @@ import type {
   ApiSuccess,
   CallbackRequestDto,
   CallIntentDto,
+  ContactGeneralDto,
+  ContactMessage,
+  ContactMessagePatchDto,
+  ContactMessageStatus,
   Inquiry,
   InquiryDto,
+  PaginationMeta,
   WhatsAppLinkResult,
 } from '@contracts';
 
@@ -43,6 +48,51 @@ export const contactApi = baseApi.injectEndpoints({
       query: (propertyId) => `/contact/whatsapp-link/${propertyId}`,
       transformResponse: (r: ApiSuccess<WhatsAppLinkResult>) => r.data,
     }),
+
+    /** Public general-contact form — admins receive the message. */
+    submitContactGeneral: build.mutation<
+      { id: string; received: true },
+      ContactGeneralDto
+    >({
+      query: (body) => ({ url: '/contact/general', method: 'POST', body }),
+      transformResponse: (r: ApiSuccess<{ id: string; received: true }>) => r.data,
+      invalidatesTags: [{ type: 'ContactMessage', id: 'LIST' }],
+    }),
+
+    /** Admin: list contact messages with optional status filter. */
+    listContactMessages: build.query<
+      { items: ContactMessage[]; unread: number; meta: PaginationMeta },
+      { page?: number; limit?: number; status?: ContactMessageStatus }
+    >({
+      query: (args) => ({
+        url: '/admin/contact-messages',
+        params: {
+          page: args.page ?? 1,
+          limit: args.limit ?? 20,
+          ...(args.status ? { status: args.status } : {}),
+        },
+      }),
+      transformResponse: (
+        r: ApiSuccess<{ items: ContactMessage[]; unread: number }> & {
+          meta: PaginationMeta;
+        },
+      ) => ({ items: r.data.items, unread: r.data.unread, meta: r.meta }),
+      providesTags: [{ type: 'ContactMessage', id: 'LIST' }],
+    }),
+
+    /** Admin: mark replied / closed + save admin note. */
+    updateContactMessage: build.mutation<
+      ContactMessage,
+      { id: string; body: ContactMessagePatchDto }
+    >({
+      query: ({ id, body }) => ({
+        url: `/admin/contact-messages/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (r: ApiSuccess<ContactMessage>) => r.data,
+      invalidatesTags: [{ type: 'ContactMessage', id: 'LIST' }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -53,4 +103,7 @@ export const {
   useRequestCallbackMutation,
   useGetWhatsAppLinkQuery,
   useLazyGetWhatsAppLinkQuery,
+  useSubmitContactGeneralMutation,
+  useListContactMessagesQuery,
+  useUpdateContactMessageMutation,
 } = contactApi;
