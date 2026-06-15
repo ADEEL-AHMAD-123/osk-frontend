@@ -9,4 +9,5 @@ export {
   useSubmitContactGeneralMutation,
   useListContactMessagesQuery,
   useUpdateContactMessageMutation,
+  useReplyToContactMessageMutation,
 } from './contactApi';

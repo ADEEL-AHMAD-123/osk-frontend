@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ContactMessage, ContactMessageStatus } from '@contracts';
 import {
   useListContactMessagesQuery,
+  useReplyToContactMessageMutation,
   useUpdateContactMessageMutation,
 } from '@/features/contact';
 import { toastPushed } from '@/features/ui';
@@ -61,7 +62,13 @@ export function ContactMessagesManager() {
     status: status === 'all' ? undefined : status,
   });
   const [updateMessage, { isLoading: saving }] = useUpdateContactMessageMutation();
+  const [sendReply] = useReplyToContactMessageMutation();
   const [notes, setNotes] = useState<Record<string, string>>({});
+  /* Per-message draft state keyed by id, so typing in one card never
+   * leaks into another. The empty-string fallback below means a card
+   * starts with an empty textarea regardless of any other card. */
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const items = data?.items ?? [];
   const meta = data?.meta;
@@ -69,6 +76,29 @@ export function ContactMessagesManager() {
 
   const setNote = (id: string, value: string) => {
     setNotes((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const setReply = (id: string, value: string) => {
+    setReplies((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const onSendReply = async (msg: ContactMessage) => {
+    const body = (replies[msg.id] ?? '').trim();
+    if (!body) {
+      dispatch(toastPushed('error', 'Reply is empty.'));
+      return;
+    }
+    setSendingId(msg.id);
+    try {
+      await sendReply({ id: msg.id, body }).unwrap();
+      dispatch(toastPushed('success', `Reply sent to ${msg.email} — marked replied.`));
+      setReply(msg.id, '');
+    } catch {
+      /* surfaced by the global toast — most likely cause is email
+       * provider isn't configured under /admin/email. */
+    } finally {
+      setSendingId(null);
+    }
   };
 
   const markStatus = async (msg: ContactMessage, next: ContactMessageStatus) => {
@@ -81,17 +111,6 @@ export function ContactMessagesManager() {
     } catch {
       /* surfaced by global toast */
     }
-  };
-
-  const replyHref = (msg: ContactMessage): string => {
-    const subject = `Re: ${msg.topic} — ${new Date(msg.createdAt).toLocaleDateString('en-US')}`;
-    const quoted = `\n\n---\nOn ${formatDate(msg.createdAt)}, ${msg.name} wrote:\n${msg.message
-      .split('\n')
-      .map((l) => `> ${l}`)
-      .join('\n')}`;
-    return `mailto:${encodeURIComponent(msg.email)}?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(quoted)}`;
   };
 
   return (
@@ -161,30 +180,44 @@ export function ContactMessagesManager() {
 
                 <p className={styles.cardBody}>{msg.message}</p>
 
+                {/* Inline reply — typed directly here. On send the
+                    backend emails the visitor through the configured
+                    provider, marks the message replied, and notifies
+                    this admin that delivery succeeded. */}
+                {msg.status !== 'closed' ? (
+                  <label className={styles.noteField}>
+                    <span className={styles.noteLabel}>Reply to {msg.name}</span>
+                    <textarea
+                      className={styles.note}
+                      rows={4}
+                      placeholder={`Hi ${msg.name.split(' ')[0] ?? msg.name}, thanks for reaching out…`}
+                      value={replies[msg.id] ?? ''}
+                      onChange={(e) => setReply(msg.id, e.target.value)}
+                      disabled={sendingId === msg.id}
+                    />
+                  </label>
+                ) : null}
+
                 <label className={styles.noteField}>
-                  <span className={styles.noteLabel}>Admin note (private)</span>
+                  <span className={styles.noteLabel}>Internal notes (private)</span>
                   <textarea
                     className={styles.note}
                     rows={2}
-                    placeholder="What did you reply with?"
+                    placeholder="Reminders, tags, anything for your team."
                     value={noteValue}
                     onChange={(e) => setNote(msg.id, e.target.value)}
                   />
                 </label>
 
                 <div className={styles.cardActions}>
-                  <a className={styles.replyBtn} href={replyHref(msg)}>
-                    Reply via email
-                  </a>
-                  {msg.status !== 'replied' ? (
+                  {msg.status !== 'closed' ? (
                     <Button
                       type="button"
-                      variant="secondary"
                       size="sm"
-                      disabled={saving}
-                      onClick={() => markStatus(msg, 'replied')}
+                      disabled={sendingId === msg.id || !(replies[msg.id] ?? '').trim()}
+                      onClick={() => onSendReply(msg)}
                     >
-                      Mark replied
+                      {sendingId === msg.id ? 'Sending…' : 'Send reply'}
                     </Button>
                   ) : null}
                   {msg.status !== 'closed' ? (
@@ -200,6 +233,7 @@ export function ContactMessagesManager() {
                   {noteDirty ? (
                     <Button
                       type="button"
+                      variant="secondary"
                       size="sm"
                       disabled={saving}
                       onClick={() =>

@@ -93,6 +93,19 @@ export const contactApi = baseApi.injectEndpoints({
       transformResponse: (r: ApiSuccess<ContactMessage>) => r.data,
       invalidatesTags: [{ type: 'ContactMessage', id: 'LIST' }],
     }),
+
+    /** Admin: send an email reply to the visitor inline. On success
+     *  the backend marks the message replied, so the list refetches
+     *  via the invalidation tag and the row updates. */
+    replyToContactMessage: build.mutation<ContactMessage, { id: string; body: string }>({
+      query: ({ id, body }) => ({
+        url: `/admin/contact-messages/${id}/reply`,
+        method: 'POST',
+        body: { body },
+      }),
+      transformResponse: (r: ApiSuccess<ContactMessage>) => r.data,
+      invalidatesTags: [{ type: 'ContactMessage', id: 'LIST' }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -106,4 +119,5 @@ export const {
   useSubmitContactGeneralMutation,
   useListContactMessagesQuery,
   useUpdateContactMessageMutation,
+  useReplyToContactMessageMutation,
 } = contactApi;
