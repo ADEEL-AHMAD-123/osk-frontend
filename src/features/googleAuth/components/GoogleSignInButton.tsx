@@ -31,8 +31,21 @@ export function GoogleSignInButton({ redirectTo, variant = 'signin' }: Props) {
 
   if (isLoading || !data || !data.enabled) return null;
 
-  const target =
-    redirectTo ?? (typeof window !== 'undefined' ? window.location.origin : '');
+  /* Always send an ABSOLUTE URL to the backend.
+   *
+   * If `redirectTo` is a same-origin path like "/admin/google" (which
+   * happens when SignInForm passes `searchParams.get('next')` straight
+   * through after a "?next=/admin/google" redirect), we MUST resolve
+   * it against the current frontend origin before handing it off.
+   * Otherwise the backend OAuth callback ends up doing a relative
+   * `res.redirect('/admin/google')` — and a relative redirect from
+   * the backend resolves to the backend's domain, which 404s. */
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const target = redirectTo
+    ? redirectTo.startsWith('/')
+      ? `${origin}${redirectTo}`
+      : redirectTo
+    : origin;
   const href = `${API_BASE}/auth/google/start${
     target ? `?redirectTo=${encodeURIComponent(target)}` : ''
   }`;
