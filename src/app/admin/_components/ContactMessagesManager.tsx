@@ -183,8 +183,13 @@ export function ContactMessagesManager() {
                 {/* Inline reply — typed directly here. On send the
                     backend emails the visitor through the configured
                     provider, marks the message replied, and notifies
-                    this admin that delivery succeeded. */}
-                {msg.status !== 'closed' ? (
+                    this admin that delivery succeeded.
+                    Only shown while the message is still in `new`
+                    status. Once replied, the conversation is done
+                    from OSK's side — the admin can follow up via
+                    their inbox if needed (the visitor's reply lands
+                    back at the support address). */}
+                {msg.status === 'new' ? (
                   <label className={styles.noteField}>
                     <span className={styles.noteLabel}>Reply to {msg.name}</span>
                     <textarea
@@ -210,7 +215,7 @@ export function ContactMessagesManager() {
                 </label>
 
                 <div className={styles.cardActions}>
-                  {msg.status !== 'closed' ? (
+                  {msg.status === 'new' ? (
                     <Button
                       type="button"
                       size="sm"
