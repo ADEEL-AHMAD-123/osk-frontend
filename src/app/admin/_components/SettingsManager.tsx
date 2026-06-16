@@ -69,11 +69,26 @@ const EMPTY_ABOUT: SiteSettingsAbout = {
   cta: { title: '', body: '' },
 };
 
-const EMPTY_PARTNERS: SiteSettingsPartners = {
-  eyebrow: '',
-  title: '',
-  sub: '',
-  items: [],
+/**
+ *  Fallback content shown in the admin editor when the deployed
+ *  backend's settings doc has no `partners` field yet — must mirror
+ *  the FALLBACK_PARTNERS constant in TrustedPartners.tsx so the
+ *  admin sees the same content the public home page is rendering.
+ *  After the first save, this is overwritten by the saved values
+ *  the API returns.
+ */
+const FALLBACK_PARTNERS: SiteSettingsPartners = {
+  eyebrow: 'Trusted partners',
+  title: 'A network you can close with.',
+  sub: 'From financing to the final inspection, OSK works with vetted local pros so every step of the move stays under one roof.',
+  items: [
+    { name: 'Atlas Mortgage', role: 'Mortgage broker' },
+    { name: 'Liberty Title', role: 'Title insurance' },
+    { name: 'Apex Inspections', role: 'Home inspection' },
+    { name: 'First Federal Bank', role: 'Lender' },
+    { name: 'Sterling Insure', role: 'Home insurance' },
+    { name: 'Cornerstone Movers', role: 'Relocation' },
+  ],
 };
 
 const DEFAULT_HOME_STATS: SiteSettingsStat[] = [
@@ -119,7 +134,22 @@ function fromSettings(s: SiteSettings): FormState {
     privacyUpdatedAt: s.legal?.privacyUpdatedAt ?? DEFAULT_LEGAL.privacyUpdatedAt,
     termsUpdatedAt: s.legal?.termsUpdatedAt ?? DEFAULT_LEGAL.termsUpdatedAt,
     about: s.about ?? EMPTY_ABOUT,
-    partners: s.partners ?? EMPTY_PARTNERS,
+    /* Per-field fallback so the editor never shows empty inputs when
+     * the deployed backend hasn't shipped the partners field yet OR
+     * when the doc returns an empty items array. The first save
+     * persists whatever's in the form, so the admin can use this as
+     * a starting template and just tweak from there. */
+    partners: {
+      eyebrow: s.partners?.eyebrow?.trim()
+        ? s.partners.eyebrow
+        : FALLBACK_PARTNERS.eyebrow,
+      title: s.partners?.title?.trim() ? s.partners.title : FALLBACK_PARTNERS.title,
+      sub: s.partners?.sub?.trim() ? s.partners.sub : FALLBACK_PARTNERS.sub,
+      items:
+        s.partners?.items && s.partners.items.length > 0
+          ? s.partners.items
+          : FALLBACK_PARTNERS.items,
+    },
   };
 }
 
